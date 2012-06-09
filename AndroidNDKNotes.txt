@@ -7,3 +7,10 @@ Other good stuff :
 1. From the Android shell you can do output redirection and log into a file like a laptop. 
 2. A sample piece of hello world native code is attached,  along with some real simple code for sending and receiving datagrams with the SO_TIMESTAMP option. All of these have been tested on the emulator.
 The sample code is taken from : http://vilimpoc.org/research/ku-latency/
+
+Debugging in the NDK:
+
+1. ndk-gdb is still pretty flaky. Several attempts at getting it to work don't seem to have worked out all that well. 
+2. The good ol way of printing out statements is accomplished using liblog and the Android logging facilities : http://stackoverflow.com/questions/4629308/any-simple-or-easy-way-to-debug-android-ndk-code
+http://stackoverflow.com/questions/10274920/how-to-get-printf-messgaes-written-in-ndk-application
+
