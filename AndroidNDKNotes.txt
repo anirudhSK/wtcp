@@ -1,0 +1,9 @@
+1. You can compile purely native binaries using the Android NDK with no form of Java/JNI coupling at all. You need to run only the cross compiling portion of the build ie only ndk-build and not the usual ant build in addition to it.
+2. Here is a very clear blog post on it : http://vilimpoc.org/blog/2010/09/26/straightforward-android-native-executables/
+3. Only glitch is that some phones might need to be rooted to push an executable. Not sure, you maybe able to push the executable into /sdcard instead of /data
+
+Other good stuff :
+
+1. From the Android shell you can do output redirection and log into a file like a laptop. 
+2. A sample piece of hello world native code is attached,  along with some real simple code for sending and receiving datagrams with the SO_TIMESTAMP option. All of these have been tested on the emulator.
+The sample code is taken from : http://vilimpoc.org/research/ku-latency/
