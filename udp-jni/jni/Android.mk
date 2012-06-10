@@ -16,7 +16,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE    := send-data
-LOCAL_SRC_FILES := send-data.c
+LOCAL_MODULE    := client
+LOCAL_SRC_FILES := client.c
 LOCAL_LDLIBS := -llog
 include $(BUILD_SHARED_LIBRARY)

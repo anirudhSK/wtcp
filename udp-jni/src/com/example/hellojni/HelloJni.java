@@ -35,7 +35,7 @@ public class HelloJni extends Activity
         TextView  tv = new TextView(this);
         tv.setText( "Hellow" );
         setContentView(tv);
-        runUDP();
+        runClient();
         tv.setText( "BBye" );
         setContentView(tv);
 
@@ -46,7 +46,7 @@ public class HelloJni extends Activity
      * with this application.
      */
     public native String  stringFromJNI();
-    public native void runUDP();
+    public native void runClient();
 
     /* This is another native method declaration that is *not*
      * implemented by 'hello-jni'. This is simply to show that
@@ -66,6 +66,6 @@ public class HelloJni extends Activity
      * installation time by the package manager.
      */
     static {
-        System.loadLibrary("send-data");
+        System.loadLibrary("client");
     }
 }
