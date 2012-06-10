@@ -17,12 +17,15 @@ struct senderdata {
   int queue_len;
 };
 
-JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz )
+JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz,jstring destIp, jstring port)
 {
    char** argv=(char**)malloc(sizeof(char*)*10); // ANIRUDH: Mod here
    argv[0]="client";
-   argv[1]="128.30.66.123";
-   argv[2]="1025" ;
+   argv[1] = (*env)->GetStringUTFChars(env, destIp, 0);
+   argv[2] = (*env)->GetStringUTFChars(env, port, 0);
+
+ //  argv[1]="128.30.66.123";
+ //  argv[2]="1025" ;
    mainFunction(3,argv);
 }
 

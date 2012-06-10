@@ -17,36 +17,65 @@ package com.example.hellojni;
 
 import android.app.Activity;
 import android.widget.TextView;
+import android.widget.Button;
 import android.os.Bundle;
-
-
+import android.widget.EditText;
+import android.view.View.* ; 
+import android.view.* ;
+import android.widget.Toast;
 public class HelloJni extends Activity
 {
+
+    Button runTest;
+    TextView enterIP;
+    TextView enterPort;
+    EditText destIP;
+    EditText destPort;
+    public void onButtonClicked(View v) {
+        // Do something when the button is clicked
+          Toast.makeText(HelloJni.this, "Running UDP ping", Toast.LENGTH_SHORT).show();
+          String destIPStr=destIP.getText().toString();
+          String destPortStr=destPort.getText().toString();
+          if(destIPStr != "" && destPortStr != "" ) {
+             runClient(destIPStr,destPortStr);
+          }
+        }
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
+        
+        enterIP = (TextView) findViewById(R.id.EnterIP);
+        enterIP.setText("Enter IP"); 
+
+        enterPort = (TextView) findViewById(R.id.EnterPort);
+        enterPort.setText("Enter Port"); 
+        
+        destIP = (EditText) findViewById(R.id.destIP);
+        destIP.setText("128.30.66.123");
+        
+        destPort = (EditText) findViewById(R.id.destPort);
+        destPort.setText("1025");
+
 
         /* Create a TextView and set its content.
          * the text is retrieved by calling a native
          * function.
          */
-        TextView  tv = new TextView(this);
-        tv.setText( "Hellow" );
-        setContentView(tv);
-        runClient();
-        tv.setText( "BBye" );
-        setContentView(tv);
+                ////runClient("128.30.66.123","1025");
+        //tv.setText( "BBye" );
+        //setContentView(tv);
 
     }
-
+     
     /* A native method that is implemented by the
      * 'hello-jni' native library, which is packaged
      * with this application.
      */
     public native String  stringFromJNI();
-    public native void runClient();
+    public native void runClient(String destPort,String port);
 
     /* This is another native method declaration that is *not*
      * implemented by 'hello-jni'. This is simply to show that
