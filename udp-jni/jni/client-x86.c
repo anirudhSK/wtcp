@@ -9,32 +9,31 @@
 #include <time.h>
 #include <string.h>
 // ANIRUDH: Android logging
-#include <jni.h>
-#include <android/log.h>
+//#include <jni.h>
+//#include <android/log.h>
 #include <errno.h>
 struct senderdata {
   int datagram_count;
   int queue_len;
-  int secTimeStamp;
-  int usecTimeStamp;
+  struct timeval sentTimeStamp;
 };
-
-JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz,jstring destIp, jstring port)
-{
-   char** argv=(char**)malloc(sizeof(char*)*10); // ANIRUDH: Mod here
-   argv[0]="client";
-   argv[1] = (*env)->GetStringUTFChars(env, destIp, 0);
-   argv[2] = (*env)->GetStringUTFChars(env, port, 0);
- //  argv[1]="128.30.66.123";
- //  argv[2]="1025" ;
-   mainFunction(3,argv);
-}
-
-int mainFunction( int argc, char *argv[] )
+///
+///JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz,jstring destIp, jstring port)
+///{
+///   char** argv=(char**)malloc(sizeof(char*)*10); // ANIRUDH: Mod here
+///   argv[0]="client";
+///   argv[1] = (*env)->GetStringUTFChars(env, destIp, 0);
+///   argv[2] = (*env)->GetStringUTFChars(env, port, 0);
+/// //  argv[1]="128.30.66.123";
+/// //  argv[2]="1025" ;
+///   mainFunction(3,argv);
+///}
+///
+int main( int argc, char *argv[] )
 {
   /* command line argument handling */ 
   if ( argc != 3 ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Usage: %s IP PORT\n", argv[ 0 ] );
+    printf( "Usage: %s IP PORT\n", argv[ 0 ] );
     exit( 1 );
   }
 
@@ -42,14 +41,14 @@ int mainFunction( int argc, char *argv[] )
   int port = atoi( argv[ 2 ] );
 
   if ( port <= 0 ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "%s: Bad port %s\n", argv[ 0 ], argv[ 2 ] );
+    printf( "%s: Bad port %s\n", argv[ 0 ], argv[ 2 ] );
     exit( 1 );
   }
 
   /* create socket */
   int sock = socket( AF_INET, SOCK_DGRAM, 0 );
   if ( sock < 0 ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "socket :%s \n",strerror(errno) );
+    printf( "socket :%s \n",strerror(errno) );
     exit( 1 );
   }
 
@@ -58,25 +57,25 @@ int mainFunction( int argc, char *argv[] )
   addr.sin_family = AF_INET;
   addr.sin_port = htons( port );
   if ( !inet_aton( ip, &addr.sin_addr ) ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "%s: Bad IP address %s\n", argv[ 0 ], ip );
+    printf( "%s: Bad IP address %s\n", argv[ 0 ], ip );
     exit( 1 );
   }
 
   if ( connect( sock, (struct sockaddr *)&addr, sizeof( addr ) ) < 0 ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "connect: %s \n",strerror(errno) );
+    printf( "connect: %s \n",strerror(errno) );
     exit( 1 );
   }
 
   /* ask for timestamps */
   int ts_opt = 1;
   if ( setsockopt( sock, SOL_SOCKET, SO_TIMESTAMP, &ts_opt, sizeof( ts_opt ) ) < 0 ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "setsockopt: %s \n",strerror(errno) );
+    printf( "setsockopt: %s \n",strerror(errno) );
     exit( 1 );
   }
 
   /* send initial datagram */
   if ( send( sock, NULL, 0, 0 ) < 0 ) {
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "send: %s \n",strerror(errno) );
+    printf( "send: %s \n",strerror(errno) );
     exit( 1 );
   }
 
@@ -102,7 +101,7 @@ int mainFunction( int argc, char *argv[] )
 
     ssize_t ret = recvmsg( sock, &header, 0 );
     if ( ret < 0 ) {
-      __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "recvmsg: %s \n",strerror(errno) );
+      printf( "recvmsg: %s \n",strerror(errno) );
       exit( 1 );
     }
 
@@ -117,32 +116,32 @@ int mainFunction( int argc, char *argv[] )
 
     /* get sender data */
     struct senderdata data;
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just before asserting , ret is %d, sizeof is %d \n , sizeof timeval is %d , sizeof sentdata is %d \n",ret,sizeof(data),sizeof(struct timeval),sizeof(struct senderdata) );
+    printf( "Just before asserting , ret is %d, sizeof is %d \n , sizeof timeval is %d , sizeof sentdata is %d \n",ret,sizeof(data),sizeof(struct timeval),sizeof(struct senderdata) );
     assert( ret == sizeof( data ) );
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just after asserting \n");
+    printf( "Just after asserting \n");
     memcpy( &data, msg_payload, ret );
 
     if ( first_secs == -1 ) {
       first_secs = ts->tv_sec;
     }
 
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING",
+    printf(
             "%d %d %.9f\n",
 	    data.datagram_count,
 	    data.queue_len,
 	    ts->tv_sec + .000001 * ts->tv_usec - first_secs ); // ANIRUDH: SO_TIMESTAMPNS is not supported on Android. 
     /*ACK it right back , with the original timestamp echoed inside */ 
-    if ( send( sock, &data,sizeof(data) , 0 ) < 0 ) {   
-        __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "send: %s \n",strerror(errno) );
-        exit( 1 );
-    }
+    //if ( send( sock, &data,sizeof(data) , 0 ) < 0 ) {   
+    //    printf( "send: %s \n",strerror(errno) );
+    //    exit( 1 );
+    //}
     /* Wait until you get about 900 datagrams */ 
     if(data.datagram_count >= 900) {
-	__android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Received 900th data gram. Terminating");
+	printf( "Received 900th data gram. Terminating");
        break;
     }
     if ( ts->tv_sec != last_secs ) {
-      __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "(%d) ", datagram_count );
+      printf( "(%d) ", datagram_count );
       last_secs = ts->tv_sec;
     }
   }
