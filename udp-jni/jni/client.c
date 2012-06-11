@@ -117,9 +117,9 @@ int mainFunction( int argc, char *argv[] )
 
     /* get sender data */
     struct senderdata data;
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just before asserting , ret is %d, sizeof is %d \n , sizeof timeval is %d , sizeof sentdata is %d \n",ret,sizeof(data),sizeof(struct timeval),sizeof(struct senderdata) );
+//    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just before asserting , ret is %d, sizeof is %d \n , sizeof timeval is %d , sizeof sentdata is %d \n",ret,sizeof(data),sizeof(struct timeval),sizeof(struct senderdata) );
     assert( ret == sizeof( data ) );
-    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just after asserting \n");
+//    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just after asserting \n");
     memcpy( &data, msg_payload, ret );
 
     if ( first_secs == -1 ) {
