@@ -47,7 +47,9 @@ int main( int argc, char *argv[] )
     exit( 1 );
   }
 
+listenForConn:
   /* wait for initial datagram */
+  printf("Waiting for new client \n");
   socklen_t addrlen = sizeof( addr );
   if ( recvfrom( sock, NULL, 0, 0, (sockaddr *)&addr, &addrlen ) < 0 ) {
     perror( "recvfrom" );
@@ -87,7 +89,10 @@ int main( int argc, char *argv[] )
       exit( 1 );
     }
     datagram_count++;
-
+    if(datagram_count==1000) {
+      printf("Have sent 1000 data grams now returning to listen for connection \n");
+      goto listenForConn ; // hopefully someone else waits long enough before starting a new connection. 
+    }
     /*
     if ( (datagram_count % 500) == 0 ) {
       sleep( 1 );

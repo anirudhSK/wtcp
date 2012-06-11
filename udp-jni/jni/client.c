@@ -127,7 +127,10 @@ int mainFunction( int argc, char *argv[] )
 	    data.datagram_count,
 	    data.queue_len,
 	    ts->tv_sec + .000001 * ts->tv_usec - first_secs ); // ANIRUDH: SO_TIMESTAMPNS is not supported on Android. 
-
+    if(data.datagram_count >= 900) {
+	__android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Received 900th data gram. Terminating");
+       break;
+    }
     if ( ts->tv_sec != last_secs ) {
       __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "(%d) ", datagram_count );
       //fflush( NULL ); // ANIRUDH: Replace if reqd. later
