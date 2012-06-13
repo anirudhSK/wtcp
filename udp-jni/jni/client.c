@@ -15,8 +15,8 @@
 struct senderdata {
   int datagram_count;
   int queue_len;
-  int secTimeStamp;
-  int usecTimeStamp;
+  int secs;
+  int us;
 };
 
 JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz,jstring destIp, jstring port)
@@ -122,6 +122,10 @@ int mainFunction( int argc, char *argv[] )
 //    __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Just after asserting \n");
     memcpy( &data, msg_payload, ret );
 
+    if ( datagram_count > 10000 ) {
+      return 0;
+    }
+
     if ( first_secs == -1 ) {
       first_secs = ts->tv_sec;
     }
@@ -130,21 +134,8 @@ int mainFunction( int argc, char *argv[] )
             "%d %d %.9f\n",
 	    data.datagram_count,
 	    data.queue_len,
-	    ts->tv_sec + .000001 * ts->tv_usec - first_secs ); // ANIRUDH: SO_TIMESTAMPNS is not supported on Android. 
-    /*ACK it right back , with the original timestamp echoed inside */ 
-    if ( send( sock, &data,sizeof(data) , 0 ) < 0 ) {   
-        __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "send: %s \n",strerror(errno) );
-        exit( 1 );
-    }
-    /* Wait until you get about 900 datagrams */ 
-    if(data.datagram_count >= 900) {
-	__android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "Received 900th data gram. Terminating");
-       break;
-    }
-    if ( ts->tv_sec != last_secs ) {
-      __android_log_print(ANDROID_LOG_DEBUG,"UDP-TIMING", "(%d) ", datagram_count );
-      last_secs = ts->tv_sec;
-    }
+	    (ts->tv_sec - data.secs) + .000001 * (ts->tv_usec - data.us) );
+
   }
   return 0;
 }
