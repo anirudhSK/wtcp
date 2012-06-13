@@ -12,11 +12,13 @@
 #include <jni.h>
 #include <android/log.h>
 #include <errno.h>
+#include "parameters.h"
 struct senderdata {
   int datagram_count;
   int queue_len;
   int secs;
   int us;
+  int padding[PKT_PADDING];
 };
 
 JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz,jstring destIp, jstring port)

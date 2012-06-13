@@ -9,16 +9,20 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-
+#include "parameters.h"
+#include <math.h>
+int pktdist = CBR; 
 struct senderdata {
   int datagram_count;
   int queue_len;
   int secs;
   int us;
+  int padding[PKT_PADDING];
 };
 
 int main( int argc, char *argv[] )
 {
+  srand(0);
   if ( argc != 2 ) {
     fprintf( stderr, "Usage: %s PORT\n", argv[ 0 ] );
     exit( 1 );
@@ -63,7 +67,7 @@ int main( int argc, char *argv[] )
   int datagram_count = 0;
   int queue_len = -1;
   struct timeval timestamp;
-
+  int numPackets=0;
   while ( 1 ) {
     /* pause if necessary */
     while ( 1 ) {
@@ -86,22 +90,44 @@ int main( int argc, char *argv[] )
     gettimeofday( &timestamp, NULL );
     data.secs = timestamp.tv_sec;
     data.us = timestamp.tv_usec;
-
-    if ( sendto( sock, &data, sizeof( data ),
-		 0, (sockaddr *)&addr, sizeof( addr ) ) < 0 ) {
+    int nrTx=0;
+    if ( (nrTx=sendto( sock, &data, sizeof( data ),
+		 0, (sockaddr *)&addr, sizeof( addr ) )) < 0 ) {
       perror( "sendto" );
       exit( 1 );
     }
+    else {
+      printf("Sent %d bytes at time %ld.%06ld \n",nrTx,timestamp.tv_sec,timestamp.tv_usec);
+    }
     datagram_count++;
-
-    usleep( 10000 );
+    if (pktdist == CBR) {    
+      usleep( 1000000/ARRIVAL_RATE );
+     } 
+    else if (pktdist == POISSON) {
+       float u= rand()/RAND_MAX;
+       usleep(-log(u)*1000000/ARRIVAL_RATE);
+    }
+    else if (pktdist == SQUARE ) {
+         if(numPackets >= ACTIVE_PACKETS) {
+             float activePeriod=(float)(ACTIVE_PACKETS*(1000000*DUTY_CYCLE))/(float)ARRIVAL_RATE;
+             float dormantPeriod=(float)(activePeriod*(1-DUTY_CYCLE))/(float)(DUTY_CYCLE);
+             numPackets=0;
+             usleep((int)dormantPeriod);
+         }
+         else {
+             numPackets++;
+             usleep((int)(1000000*(float)DUTY_CYCLE)/(float)ARRIVAL_RATE);
+         }
+    }       
+     
+    }
 
     /*
     if ( (datagram_count % 500) == 0 ) {
       sleep( 1 );
     }
     */
-  }
+  
 
   return 0;
 }

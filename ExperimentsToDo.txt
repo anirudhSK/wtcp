@@ -1,0 +1,28 @@
+1. Use HTC phone.
+
+- Vary interarrival distribution from the server.
+
+Constant : usleep(100)
+Poisson  :  -In(U)/Lambda
+Square Wave pattern : Generate for 1 second, turn off for 1 second, Generate for 1 second turn off for 1 second and so on. Different duty cycles for the same rate, generates different burstiness. 
+
+- Vary packet size. 
+
+10, 100, 1000 
+
+- Vary directionality ie server to client and client to server. 
+
+2 variables 
+
+- Vary arrival rate. 
+
+10Hz, 100Hz
+
+
+First :
+
+1. Fix the arrival rate to 100Hz.
+2. Vary the interarrival distribution.
+3. Vary the packet sizes. 
+
+
