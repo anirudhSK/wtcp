@@ -1,0 +1,6 @@
+set term png size 1149, 861 crop
+set output "plot.png"
+set xlabel "pkt Num"
+set ylabel "latency rel. to min"
+set title "Latency time series"
+plot 'plot.data'

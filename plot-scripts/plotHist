@@ -1,0 +1,6 @@
+set term png size 1149, 861 crop
+set output "hist.png"
+set title "Latency histogram"
+binwidth=2
+bin(x,width)=width*floor(x/width)
+plot 'hist.data' using (bin($1,binwidth)):(1.0) smooth freq with boxes

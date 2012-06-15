@@ -26,3 +26,18 @@ First :
 3. Vary the packet sizes. 
 
 
+
+Experiments :
+
+1. Arrival rate at 100 Hz.
+
+Pkt dist :
+
+1. CBR
+2. Poisson
+3. Square wave at 25 %
+4. Square wave at 50 %
+5. Square wave at 75 %
+6. Pareto with mean 10 ms and some arbitrary shape parameter. 
+
+Change the whole thing to PKT_PADDING=100 and 250 apart from 1. 

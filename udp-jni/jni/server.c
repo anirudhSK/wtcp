@@ -23,13 +23,13 @@ struct senderdata {
 int main( int argc, char *argv[] )
 {
   srand(0);
-  if ( argc != 2 ) {
-    fprintf( stderr, "Usage: %s PORT\n", argv[ 0 ] );
+  if ( argc != 3 ) {
+    fprintf( stderr, "Usage: %s PORT <DIST: 1-CBR, 2-POISSON, 3-SQUARE>  \n", argv[ 0 ] );
     exit( 1 );
   }
 
   int port = atoi( argv[ 1 ] );
-
+  int pktdist = atoi(argv[2]);
   if ( port <= 0 ) {
     fprintf( stderr, "%s: Bad port %s\n", argv[ 0 ], argv[ 1 ] );
     exit( 1 );
@@ -97,26 +97,30 @@ int main( int argc, char *argv[] )
       exit( 1 );
     }
     else {
-      printf("Sent %d bytes at time %ld.%06ld \n",nrTx,timestamp.tv_sec,timestamp.tv_usec);
+//     printf("Sent %d bytes at time %ld.%06ld \n",nrTx,timestamp.tv_sec,timestamp.tv_usec);
+     ;
     }
     datagram_count++;
     if (pktdist == CBR) {    
-      usleep( 1000000/ARRIVAL_RATE );
+      usleep(1000000/ARRIVAL_RATE);
      } 
     else if (pktdist == POISSON) {
-       float u= rand()/RAND_MAX;
+       float u= rand()/(float)RAND_MAX;
+//       printf("Sleeping for time %f \n",-log(u)*1000000/ARRIVAL_RATE);
        usleep(-log(u)*1000000/ARRIVAL_RATE);
     }
     else if (pktdist == SQUARE ) {
          if(numPackets >= ACTIVE_PACKETS) {
-             float activePeriod=(float)(ACTIVE_PACKETS*(1000000*DUTY_CYCLE))/(float)ARRIVAL_RATE;
-             float dormantPeriod=(float)(activePeriod*(1-DUTY_CYCLE))/(float)(DUTY_CYCLE);
+             float activePeriod=(ACTIVE_PACKETS*1000000*DUTY_CYCLE)/ARRIVAL_RATE;
+             float dormantPeriod=(activePeriod*(1-DUTY_CYCLE))/DUTY_CYCLE;
              numPackets=0;
              usleep((int)dormantPeriod);
+             printf("Sleeping for a dormantPeriod %f microseconds \n",dormantPeriod);
          }
          else {
              numPackets++;
-             usleep((int)(1000000*(float)DUTY_CYCLE)/(float)ARRIVAL_RATE);
+             usleep((int)((1000000*DUTY_CYCLE)/ARRIVAL_RATE));
+//             printf("Sleeping for an interim period %d microseconds \n",(int)((1000000*DUTY_CYCLE)/ARRIVAL_RATE));
          }
     }       
      
