@@ -23,13 +23,14 @@ struct senderdata {
 int main( int argc, char *argv[] )
 {
   srand(0);
-  if ( argc != 3 ) {
-    fprintf( stderr, "Usage: %s PORT <DIST: 1-CBR, 2-POISSON, 3-SQUARE>  \n", argv[ 0 ] );
+  if ( argc != 4 ) {
+    fprintf( stderr, "Usage: %s PORT <DIST: 1-CBR, 2-POISSON, 3-SQUARE> <DUTY CYCLE>  \n", argv[ 0 ] );
     exit( 1 );
   }
 
   int port = atoi( argv[ 1 ] );
   int pktdist = atoi(argv[2]);
+  double dutyCycle=atof(argv[3]);
   if ( port <= 0 ) {
     fprintf( stderr, "%s: Bad port %s\n", argv[ 0 ], argv[ 1 ] );
     exit( 1 );
@@ -111,15 +112,15 @@ int main( int argc, char *argv[] )
     }
     else if (pktdist == SQUARE ) {
          if(numPackets >= ACTIVE_PACKETS) {
-             float activePeriod=(ACTIVE_PACKETS*1000000*DUTY_CYCLE)/ARRIVAL_RATE;
-             float dormantPeriod=(activePeriod*(1-DUTY_CYCLE))/DUTY_CYCLE;
+             float activePeriod=(ACTIVE_PACKETS*1000000*dutyCycle)/ARRIVAL_RATE;
+             float dormantPeriod=(activePeriod*(1-dutyCycle))/dutyCycle;
              numPackets=0;
              usleep((int)dormantPeriod);
              printf("Sleeping for a dormantPeriod %f microseconds \n",dormantPeriod);
          }
          else {
              numPackets++;
-             usleep((int)((1000000*DUTY_CYCLE)/ARRIVAL_RATE));
+             usleep((int)((1000000*dutyCycle)/ARRIVAL_RATE));
 //             printf("Sleeping for an interim period %d microseconds \n",(int)((1000000*DUTY_CYCLE)/ARRIVAL_RATE));
          }
     }       
