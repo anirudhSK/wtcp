@@ -1,0 +1,55 @@
+This is specific to the Galaxy Nexus cause I am not sure about the others.
+So the Gnex has an unencrypted bootloader so unlocking is fairly easy. You just boot into bootloader (adb reboot bootloader or power button with volume up and down simultaneously). 
+Then you run fastboot oem unlock .
+It asks you for a confirmation saying it ll erase all your data. You just say yes and it's unlocked. Apparently locking voids warranty, but you can relock it fairly easily. 
+
+This story isn't that easy for encrypted bootloaders such as Motorola and HTC but that's for later when I try and jailbreak my phone.
+
+
+Anyway, once you unlock the bootloader your user data is lost but the ROM remains intact, so it's in effect a factory reset.
+
+
+Then, you use one of the many sites that offer a root binary (su) to install root utilities on your phone. 
+
+
+
+Updating the ROM, is a little more complicated :
+
+You need to boot into the bootloader and then install a recovery image.
+You then need to boot into the recovery image and install the new ROM from there. 
+The ROM is basically the entire Android file system, maybe including the kernel as well. 
+
+
+Wireless support :
+
+Ad-hoc wifi is disabled in software in the Android stack. This means, you can neither see other ad-hoc networks nor can you connect to an existing one. Both of these are down to one common cause :
+iwconfig eth0 mode ad-hoc doesn't work because iwconfig doesn't exist.
+
+Now, the iwconfig can be ported onto the  Nexus S where it works just like it does on an Ubuntu box. However, this needs support from the Wifi firmware (not the Wifi driver). 
+For some reason, iwconfig doesn't work as well on the Galaxy Nexus, so it can't go into ad hoc mode afaik. The solution seems to be install new Wifi firmware that allows the Wifi driver to behave like an Access Point. I don't know how it resets back to client mode after tethering is done though. 
+
+
+Anyway, I need to enable wifi and 3G at the same time, and my solution is to go behind Android's back and use wpa_supplicant to do the association without telling the Connectivity Manager about it. 
+
+
+Useful links from browsing yesterday, I ll try and reformat this stuff into the text later :
+
+1. Go to http://forums.androidcentral.com/verizon-galaxy-nexus-rooting-roms-hacks/147177-automated-wugs-galaxy-nexus-root-toolkit-v1-4-updated-6-5-12-a.html
+2. It won't work until you install the Galaxy NExus driver for it to
+put it into fastboot in the first place.
+3. For that, you ll need the
+http://www.samsung.com/us/support/downloads/verizon-wireless/SCH-I515MSAVZW
+drivers.
+4. But then in fastboot it ll need the Android 1.0 driver :
+http://forums.androidcentral.com/verizon-galaxy-nexus-rooting-roms-hacks/142017-android-1-0-driver-problem-check-here.html
+5. After this it ll try fastbooting and something will break : So, you
+ll need this stuff to unlock the bootloader :
+http://www.androidcentral.com/how-unlock-galaxy-nexus-bootloader
+Anirudh Sivaraman
+	
+6:46 PM (16 hours ago)
+		
+to me
+This explains bootloaders : /data/data/com.googlecode.android.wifi.tether/bin
+
+
