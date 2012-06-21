@@ -1,0 +1,5 @@
+#set term png size 700,400 crop
+set term postscript
+set xlabel "pkt Num"
+set ylabel "latency rel. to min in milliseconds"
+set logscale y
