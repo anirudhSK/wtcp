@@ -1,21 +1,23 @@
 #! /bin/bash
+rm -rf *.png
 for f in *.txt ; do
-    grep "UDP-TIMING" $f > $f.udp
-    beginning=($(grep -n ": 0 0" $f.udp | cut -f1 -d:))
-    echo "Begins at ${beginning[-1]}" # pick the last one
-    tail -n +${beginning[-1]} $f.udp | cut -d " " -f 2,4 > $f.latencies
+    grep "Sender Dgm" $f > $f.udp # This is correct 
     set -v 
     set -x
-    wc -l $f.latencies
+    wc -l $f.udp
     set +v 
     set +x
-    python plotLatencies.py $f.latencies > $f.plot
-    python latencyHist.py $f.latencies > $f.hist
-    cp $f.plot plot.data
-    cp $f.hist hist.data
-    gnuplot -p plotHist
-    gnuplot -p plotGraph
-    cp plot.png $f-plot.png
-    cp hist.png $f-hist.png
+    python plotLatencies.py $f.udp 
+    mv txRx.plot $f.txrx
+    mv latency.plot $f.plot
+    mv latency.hist $f.hist
+    padding=`echo $f | cut -d '-' -f 4 | cut -d '.' -f 1`
+    echo $padding
+    payload=`expr 4 '*' $padding '+' 16`
+    cp plotGraph plotScript
+    echo "set output \"$payload.png\"" >> plotScript
+    echo "set title \"Nexus Jun 22 Walking 10 am Payload $payload\"" >> plotScript
+    echo "plot '$f.plot' title 'Payload $payload', '$f.plot' u 1:(\$2<0?50000:0.001) title 'Losses' " >> plotScript 
+    gnuplot -p plotScript
 done
-rm plot.png hist.png
+rm plot.eps
