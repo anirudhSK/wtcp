@@ -138,7 +138,7 @@ int mainFunction( int argc, char *argv[] )
 //    fprintf(logFileHandle, "Just after asserting \n");
     memcpy( &data, msg_payload, ret );
 
-    if ( datagram_count > 10000 ) {
+    if ( datagram_count > NUM_PACKETS ) {
       return 0;
     }
 
@@ -147,11 +147,14 @@ int mainFunction( int argc, char *argv[] )
     }
 
     fprintf(logFileHandle,
-            "%d %d %.9f\n",
+            "Sender Dgm #:%d Q:%d Tx timestamp %f Rx timestamp %f \n",
 	    data.datagram_count,
 	    data.queue_len,
-	    (ts->tv_sec - data.secs) + .000001 * (ts->tv_usec - data.us) );
-
+            data.secs  + .000001*data.us,
+            ts->tv_sec + .000001*ts->tv_usec);
+    fprintf(logFileHandle,
+            "Received %d dgrams so far \n",
+	    datagram_count);
   }
   return 0;
 }
