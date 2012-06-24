@@ -1,0 +1,24 @@
+1. Compute df= min(Rx-Tx) across the whole trace.
+2. For each packet print out the Tx timestamp and the Rx timestamp. 
+3. Add df to the Tx timestamp for each packet.
+4. Now, you have a dictionary that gives you the global sender timestamp and global receiver timestamp for each packet. 
+5. Sort the list of timestamps in this format :
+
+timestamp : Packet # sent/received
+
+
+Sort in order of received time stamp and "play" the samples if they are less than D ms from the past.
+
+Every packet that was sent at time t, until time t+D reaches the receiver later than t+D or is lost. The or is lost can be ignored because lost packets are removed from the trace.
+
+Every packet that was sent at time t, until time t+D reaches the receiver later than t+D or is lost. The or is lost can be ignored because lost packets are removed from the trace.
+
+
+Take a sorted list of sender IDs:
+
+
+|  |         |         | 
+
+For each gap between the timestamps at those ID's,  check if any packet was received by the receiver soon enough.
+
+Hash from packetID -> sent time stamp and PacketID-> Rx time stamp. Sort the first on packet ID. nSimilarly for the receive timestamps.
