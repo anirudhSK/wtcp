@@ -41,7 +41,7 @@ int mainFunction( int argc, char *argv[] )
   
   /* Create log file */
   char fileName[100];
-  sprintf(fileName,"/data/data/com.example.hellojni/%d-logs-PADDING-%d.txt",timeStamp.tv_sec,PKT_PADDING);
+  sprintf(fileName,"/mnt/sdcard/Logs/%d-logs-PADDING-%d.txt",timeStamp.tv_sec,PKT_PADDING);
 
   /* Open file for logging */
   FILE * logFileHandle;
