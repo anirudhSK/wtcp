@@ -12,6 +12,7 @@ minRx=1000000000000000
 txRxFile=open("txRx.plot","w")
 latencyFile=open("latency.plot","w")
 histFile=open("latency.hist","w")
+cdfFile=open("latency.cdf","w")
 for line in FILE.readlines() :
       if (len(line.split()) < 9) : # there are some weird truncated final lines  
           continue
@@ -48,10 +49,15 @@ histogramMax=max(variableLatency.values())
 binSize=1 # 1 ms bin size
 for bins in range (int(floor(histogramMin)),int(ceil(histogramMax))) :
      counts[bins]=0
+countsTotal=0
 for packet in variableLatency :
      value=variableLatency[packet]
      binValue=int(floor(value))
      counts[binValue]=counts[binValue]+1
+     countsTotal+=1
 
+countSoFar=0
 for bins in counts :
      histFile.write(str(bins)+"\t"+str(counts[bins])+"\n");
+     countSoFar=countSoFar+counts[bins]
+     cdfFile.write(str(bins)+"\t"+"%.4f"%(float(countSoFar)/float(countsTotal))+"\n");

@@ -11,12 +11,13 @@ for f in *.txt ; do
     mv txRx.plot $f.txrx
     mv latency.plot $f.plot
     mv latency.hist $f.hist
+    mv latency.cdf $f.cdf
     padding=`echo $f | cut -d '-' -f 4 | cut -d '.' -f 1`
     echo $padding
     payload=`expr 4 '*' $padding '+' 16`
     cp plotGraph plotScript
-    echo "set output \"$payload.png\"" >> plotScript
-    echo "set title \"Nexus Jun 22 Walking 10 am Payload $payload\"" >> plotScript
+    echo "set output \"$f-$payload.png\"" >> plotScript
+    echo "set title \"$f $payload\"" >> plotScript
     echo "plot '$f.plot' title 'Payload $payload', '$f.plot' u 1:(\$2<0?50000:0.001) title 'Losses' " >> plotScript 
     gnuplot -p plotScript
 done
