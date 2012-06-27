@@ -7,4 +7,4 @@
 #define ACTIVE_PACKETS 100
 #define DUTY_CYCLE 0.75
 #define NUM_PACKETS 100000 // NUMBER OF PACKETS the rx must wait for. 
-#define NUM_CONN 1
+#define NUM_CONN 128

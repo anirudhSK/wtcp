@@ -18,5 +18,5 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE    := client
 LOCAL_SRC_FILES := client.c
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog  -g
 include $(BUILD_SHARED_LIBRARY)

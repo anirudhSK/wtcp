@@ -106,7 +106,7 @@ int main( int argc, char *argv[] )
       exit( 1 );
     }
     else {
-//     printf("Sent %d bytes at time %ld.%06ld \n",nrTx,timestamp.tv_sec,timestamp.tv_usec);
+//     printf("Sent %d bytes at time %ld.%06ld on conn %d \n",nrTx,timestamp.tv_sec,timestamp.tv_usec,currentConnection);
      ;
     }
     datagram_count++;

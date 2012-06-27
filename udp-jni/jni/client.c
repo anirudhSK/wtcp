@@ -83,9 +83,10 @@ int mainFunction( int argc, char *argv[] )
     exit( 1 );
   }
   /* start of source ports */
-  int srcPort=port ;// set it same as destination port for now. 
+  int srcPort=port +1000;// set it same as destination port for now. 
   int i=0;
   fd_set master;    // master file descriptor list
+  FD_ZERO(&master); // clear out the master file descriptor . Very important to get this right, otherwise select has no effect, it's like the select line doesn't exist. 
   for (i=0;i<NUM_CONN;i++) {
     /* create socket */
     socketArray[i] = socket( AF_INET, SOCK_DGRAM, 0 );
@@ -94,7 +95,7 @@ int mainFunction( int argc, char *argv[] )
       exit( 1 );
     }
     /* put socket in non-blocking mode */
-    fcntl(socketArray[i], F_SETFL, O_NONBLOCK);
+    if(NUM_CONN!=1) {fcntl(socketArray[i], F_SETFL, O_NONBLOCK);} // otherwise it makes sense to block 
     /* bind socket to specific source port */ 
     srcAddr[i].sin_family = AF_INET;
     srcAddr[i].sin_port = htons(srcPort+i);
@@ -128,7 +129,12 @@ int mainFunction( int argc, char *argv[] )
   int last_secs = 0, first_secs = -1;
   int datagram_count = 0;
 
-  int fdmax=socketArray[NUM_CONN]+1;
+  // pick the maximum file descriptor 
+  int fdmax=socketArray[0];
+  for (i=0;i<NUM_CONN;i++) 
+     if(fdmax<socketArray[i]) fdmax=socketArray[i];
+  fdmax=fdmax+1;
+
   /* receive responses, ie 1000 real quick probe packets */
   while ( 1 ) {
     struct msghdr header;
@@ -145,8 +151,13 @@ int mainFunction( int argc, char *argv[] )
     header.msg_control = msg_control;
     header.msg_controllen = 4096;
     header.msg_flags = 0;
-
-//    select(fdmax, &master, NULL,NULL,NULL);
+    fprintf(logFileHandle,"just before selecting \n");
+    int retval=select(fdmax, &master, NULL,NULL,NULL);
+    if(retval<0) { 
+      fprintf(logFileHandle,"select: %s \n",strerror(errno));
+      exit(1) ;
+    }
+    fprintf(logFileHandle,"just after selecting \n");
     i=0;
     for(i = 0; i < NUM_CONN; i++) {
                     // check for data

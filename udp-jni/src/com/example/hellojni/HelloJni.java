@@ -54,10 +54,10 @@ public class HelloJni extends Activity
         enterPort.setText("Enter Port"); 
         
         destIP = (EditText) findViewById(R.id.destIP);
-        destIP.setText("128.30.76.255");
+        destIP.setText("18.251.6.223");
         
         destPort = (EditText) findViewById(R.id.destPort);
-        destPort.setText("9000");
+        destPort.setText("1025");
 
 
         /* Create a TextView and set its content.
