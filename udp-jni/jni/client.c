@@ -13,6 +13,15 @@
 #include <android/log.h>
 #include <errno.h>
 #include "parameters.h"
+// For select 
+/* According to POSIX.1-2001 */
+#include <sys/select.h>
+
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
 struct senderdata {
   int datagram_count;
   int queue_len;
@@ -41,7 +50,7 @@ int mainFunction( int argc, char *argv[] )
   
   /* Create log file */
   char fileName[100];
-  sprintf(fileName,"/mnt/sdcard/Logs/%d-logs-PADDING-%d.txt",timeStamp.tv_sec,PKT_PADDING);
+  sprintf(fileName,"/mnt/sdcard/Logs/%d-logsPORTS%d-PADDING-%d.txt",timeStamp.tv_sec,NUM_CONN,PKT_PADDING);
 
   /* Open file for logging */
   FILE * logFileHandle;
@@ -61,44 +70,65 @@ int mainFunction( int argc, char *argv[] )
     exit( 1 );
   }
 
-  /* create socket */
-  int sock = socket( AF_INET, SOCK_DGRAM, 0 );
-  if ( sock < 0 ) {
-    fprintf(logFileHandle, "socket :%s \n",strerror(errno) );
-    exit( 1 );
-  }
+  /* create an array of 128 sockets to round robin receive the packets */ 
+  int socketArray[NUM_CONN];
+  struct sockaddr_in srcAddr[NUM_CONN];
 
-  /* associate socket with remote host and port */
+  /* associate sockets with remote host and port */
   struct sockaddr_in addr;
   addr.sin_family = AF_INET;
   addr.sin_port = htons( port );
-  if ( !inet_aton( ip, &addr.sin_addr ) ) {
+  if ( !inet_aton(ip, &addr.sin_addr ) ) {
     fprintf(logFileHandle, "%s: Bad IP address %s\n", argv[ 0 ], ip );
     exit( 1 );
   }
+  /* start of source ports */
+  int srcPort=port ;// set it same as destination port for now. 
+  int i=0;
+  fd_set master;    // master file descriptor list
+  for (i=0;i<NUM_CONN;i++) {
+    /* create socket */
+    socketArray[i] = socket( AF_INET, SOCK_DGRAM, 0 );
+    if ( socketArray[i] < 0 ) {
+      fprintf(logFileHandle, "socket :%s \n",strerror(errno) );
+      exit( 1 );
+    }
+    /* put socket in non-blocking mode */
+    fcntl(socketArray[i], F_SETFL, O_NONBLOCK);
+    /* bind socket to specific source port */ 
+    srcAddr[i].sin_family = AF_INET;
+    srcAddr[i].sin_port = htons(srcPort+i);
+    srcAddr[i].sin_addr.s_addr = INADDR_ANY;
+    if ( bind( socketArray[i], (struct sockaddr *)&srcAddr[i], sizeof(srcAddr[i]) ) < 0 ) {
+      perror( "bind" );
+      exit( 1 );
+    }
+    /* connect to the remote stationery server */
+    if (connect( socketArray[i], (struct sockaddr *)&addr, sizeof( addr ) ) < 0 ) {
+      fprintf(logFileHandle, "connect: %s \n",strerror(errno) );
+      exit( 1 );
+    }
+    /* ask for timestamps */
+    int ts_opt = 1;
+    if ( setsockopt( socketArray[i], SOL_SOCKET, SO_TIMESTAMP, &ts_opt, sizeof( ts_opt ) ) < 0 ) {
+      fprintf(logFileHandle, "setsockopt: %s \n",strerror(errno) );
+      exit( 1 );
+    }
 
-  if ( connect( sock, (struct sockaddr *)&addr, sizeof( addr ) ) < 0 ) {
-    fprintf(logFileHandle, "connect: %s \n",strerror(errno) );
-    exit( 1 );
+    /* send initial datagram */
+    if ( send( socketArray[i], NULL, 0, 0 ) < 0 ) {
+      fprintf(logFileHandle, "send: %s \n",strerror(errno) );
+      exit( 1 );
+    }
+    FD_SET(socketArray[i],&master);
   }
-
-  /* ask for timestamps */
-  int ts_opt = 1;
-  if ( setsockopt( sock, SOL_SOCKET, SO_TIMESTAMP, &ts_opt, sizeof( ts_opt ) ) < 0 ) {
-    fprintf(logFileHandle, "setsockopt: %s \n",strerror(errno) );
-    exit( 1 );
-  }
-
-  /* send initial datagram */
-  if ( send( sock, NULL, 0, 0 ) < 0 ) {
-    fprintf(logFileHandle, "send: %s \n",strerror(errno) );
-    exit( 1 );
-  }
-  fprintf(logFileHandle,"parameters PADDING %d, \n",PKT_PADDING);
+  
+  fprintf(logFileHandle,"ports %d parameters PADDING %d, \n",NUM_CONN,PKT_PADDING);
 
   int last_secs = 0, first_secs = -1;
   int datagram_count = 0;
 
+  int fdmax=socketArray[NUM_CONN]+1;
   /* receive responses, ie 1000 real quick probe packets */
   while ( 1 ) {
     struct msghdr header;
@@ -116,45 +146,53 @@ int mainFunction( int argc, char *argv[] )
     header.msg_controllen = 4096;
     header.msg_flags = 0;
 
-    ssize_t ret = recvmsg( sock, &header, 0 );
-    if ( ret < 0 ) {
-      fprintf(logFileHandle, "recvmsg: %s \n",strerror(errno) );
-      exit( 1 );
-    }
+//    select(fdmax, &master, NULL,NULL,NULL);
+    i=0;
+    for(i = 0; i < NUM_CONN; i++) {
+                    // check for data
+        ssize_t ret = recvmsg( socketArray[i], &header, 0 );
+        if ( ret < 0 ) {
+          if(errno==EWOULDBLOCK) {
+            continue; // no data on the socket 
+          }
+          else {
+            fprintf(logFileHandle, "recvmsg: %s \n",strerror(errno) );
+            exit( 1 );
+          }
+        }
+        datagram_count++;
 
-    datagram_count++;
+        /* timestamp data in msg_control */
+        struct cmsghdr *ts_hdr = CMSG_FIRSTHDR( &header );
+        assert( ts_hdr );
+        assert( ts_hdr->cmsg_level == SOL_SOCKET );
+        assert( ts_hdr->cmsg_type == SO_TIMESTAMP );
+        struct timeval *ts = (struct timeval *)CMSG_DATA( ts_hdr );
 
-    /* timestamp data in msg_control */
-    struct cmsghdr *ts_hdr = CMSG_FIRSTHDR( &header );
-    assert( ts_hdr );
-    assert( ts_hdr->cmsg_level == SOL_SOCKET );
-    assert( ts_hdr->cmsg_type == SO_TIMESTAMP );
-    struct timeval *ts = (struct timeval *)CMSG_DATA( ts_hdr );
+        /* get sender data */
+        struct senderdata data;
+//        fprintf(logFileHandle, "Just before asserting , ret is %d, sizeof is %d \n , sizeof timeval is %d , sizeof sentdata is %d \n",ret,sizeof(data),sizeof(struct timeval),sizeof(struct senderdata) );
+        assert( ret == sizeof( data ) );
+//        fprintf(logFileHandle, "Just after asserting \n");
+        memcpy( &data, msg_payload, ret );
 
-    /* get sender data */
-    struct senderdata data;
-//    fprintf(logFileHandle, "Just before asserting , ret is %d, sizeof is %d \n , sizeof timeval is %d , sizeof sentdata is %d \n",ret,sizeof(data),sizeof(struct timeval),sizeof(struct senderdata) );
-    assert( ret == sizeof( data ) );
-//    fprintf(logFileHandle, "Just after asserting \n");
-    memcpy( &data, msg_payload, ret );
+        if ( datagram_count > NUM_PACKETS ) {
+          return 0;
+        }
 
-    if ( datagram_count > NUM_PACKETS ) {
-      return 0;
-    }
+        if ( first_secs == -1 ) {
+          first_secs = ts->tv_sec;
+        }
 
-    if ( first_secs == -1 ) {
-      first_secs = ts->tv_sec;
-    }
-
-    fprintf(logFileHandle,
-            "Sender Dgm #:%d Q:%d Tx timestamp %f Rx timestamp %f \n",
-	    data.datagram_count,
-	    data.queue_len,
-            data.secs  + .000001*data.us,
-            ts->tv_sec + .000001*ts->tv_usec);
-    fprintf(logFileHandle,
-            "Received %d dgrams so far \n",
-	    datagram_count);
+        fprintf(logFileHandle,
+                "Sender Dgm #:%d Q:%d Tx timestamp %f Rx timestamp %f \n",
+                data.datagram_count,
+                data.queue_len,
+                data.secs  + .000001*data.us,
+                ts->tv_sec + .000001*ts->tv_usec);
+        fprintf(logFileHandle,
+                "Received %d dgrams so far , last dgram on socket %d \n",
+        	    datagram_count,socketArray[i]);
   }
-  return 0;
+ } // end of while(1) loop
 }

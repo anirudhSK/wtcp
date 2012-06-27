@@ -1,0 +1,8 @@
+1. Round robin across a given number of ports to see if it has any effect as opposed to using just one port. Do this on the HTC and Nexus and vary number of ports using NUM_CONN
+
+Results :
+
+The HTC phone seems to have had a weird NTP fix somewhere in the middle of the 128 port experiment. Screw that. 
+The Nexus had some weird issues as well. There was a pretty decent packet loss rate, presumably because the CPU wasn't clocked at 100% for the RR app. Maybe it was because the battery was low. I don't know if it does some weird frequency scaling. 
+
+The HTC on the other hand perenially has it's CPU at 100 % for this app.  

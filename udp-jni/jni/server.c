@@ -55,16 +55,22 @@ int main( int argc, char *argv[] )
     exit( 1 );
   }
 
-  /* wait for initial datagram */
-  socklen_t addrlen = sizeof( addr );
-  if ( recvfrom( sock, NULL, 0, 0, (sockaddr *)&addr, &addrlen ) < 0 ) {
-    perror( "recvfrom" );
-    exit( 1 );
-  }
-
+  /* wait for initial datagram from 128 socket-lets */
+  int i=0;
+  struct sockaddr_in srcAddr[NUM_CONN];
+  for(i=0;i<NUM_CONN;i++) {
+   socklen_t addrlen = sizeof( addr );
+   if ( recvfrom( sock, NULL, 0, 0, (sockaddr *)&addr, &addrlen ) < 0 ) {
+     perror( "recvfrom" );
+     exit( 1 );
+   }
   fprintf( stderr, "Received datagram from %s:%d\n",
 	   inet_ntoa( addr.sin_addr ),
 	   ntohs( addr.sin_port ) );
+
+   srcAddr[i]=addr; 
+  }
+
 
   int datagram_count = 0;
   int queue_len = -1;
@@ -93,8 +99,9 @@ int main( int argc, char *argv[] )
     data.secs = timestamp.tv_sec;
     data.us = timestamp.tv_usec;
     int nrTx=0;
+    int currentConnection=datagram_count%NUM_CONN;
     if ( (nrTx=sendto( sock, &data, sizeof( data ),
-		 0, (sockaddr *)&addr, sizeof( addr ) )) < 0 ) {
+		 0, (sockaddr *)&srcAddr[currentConnection], sizeof(struct sockaddr_in) )) < 0 ) {
       perror( "sendto" );
       exit( 1 );
     }
