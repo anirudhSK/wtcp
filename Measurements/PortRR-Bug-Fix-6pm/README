@@ -1,0 +1,4 @@
+After a bug fix to fix the select function call, I ran a 128 port and 1 port experiment on the Nexus.
+This was about 6 pm in the evening and was completely static.  
+100 Hz, 100000 packets 200 bytes.
+

@@ -26,11 +26,18 @@ for line in FILE.readlines() :
       packetLatency[packetNumber]=latency
       if (latency<minLatency) :
            minLatency=latency
+           minPacket=packetNumber
       if (Tx < minTx) :
            minTx =Tx
       if (Rx <minRx) :
            minRx=Rx
-for packet in range(min(packetTx.keys()),max(packetRx.keys())) :
+
+latencyValues=packetLatency.values()
+latencyValues.sort()
+numValues=len(latencyValues)
+minLatency=latencyValues[(int(numValues*0.05))]
+print "minLatency is",minLatency
+for packet in range(min(packetTx.keys()),max(packetRx.keys())+1) :
       if (packet not in packetTx) : # dropped packet 
           txRxFile.write(str(packet)+"\t -1 \t -1\n");
           latencyFile.write(str(packet)+"\t -1 \n");

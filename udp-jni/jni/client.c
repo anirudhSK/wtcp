@@ -95,7 +95,7 @@ int mainFunction( int argc, char *argv[] )
       exit( 1 );
     }
     /* put socket in non-blocking mode */
-    if(NUM_CONN!=1) {fcntl(socketArray[i], F_SETFL, O_NONBLOCK);} // otherwise it makes sense to block 
+    fcntl(socketArray[i], F_SETFL, O_NONBLOCK);
     /* bind socket to specific source port */ 
     srcAddr[i].sin_family = AF_INET;
     srcAddr[i].sin_port = htons(srcPort+i);
