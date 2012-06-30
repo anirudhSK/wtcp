@@ -1,0 +1,12 @@
+100 Hz 200 byte payload against varying amounts of cross traffic : 
+
+Cross traffic listed below :
+
+      Baseline : no background            13:29 to 13:46
+      200 bytes  @ 100 Hz  :   160 kbps   13:48 to 14:06 Double check, pretty sure
+      500 bytes  @ 100 Hz  :   400 kbps   14:15 to 14:32
+      1000 bytes @ 100 Hz  :   800 kbps   14:41 to 14:58
+      1000 bytes @ 200 Hz  :   1.6 mbps   15:05 to 15:22
+      1000 bytes @ 1000 Hz :   8   mbps   15:27 to 15:45
+
+
