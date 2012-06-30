@@ -1,0 +1,61 @@
++ wc -l 160kbps.txt.udp
+100000 160kbps.txt.udp
++ set +v
++ set +x
+minLatency is 0.150800943375
+Average latency is : 13.9814118862
+25th percentile is : 6.23416900635
+50th percentile is : 13.659954071
+75th percentile is : 21.1741924286
+160kbps
++ wc -l 1.6mbps.txt.udp
+99992 1.6mbps.txt.udp
++ set +v
++ set +x
+minLatency is 0.000411987304688
+Average latency is : 730.275164319
+25th percentile is : 14.8510932922
+50th percentile is : 26.878118515
+75th percentile is : 93.4231281281
+1
++ wc -l 400kbps.txt.udp
+100000 400kbps.txt.udp
++ set +v
++ set +x
+minLatency is 0.100299119949
+Average latency is : 26.5731629848
+25th percentile is : 8.08000564575
+50th percentile is : 16.6120529175
+75th percentile is : 24.9140262604
+400kbps
++ wc -l 800kbps.txt.udp
+100000 800kbps.txt.udp
++ set +v
++ set +x
+minLatency is 0.0502319335938
+Average latency is : 18.6960323048
+25th percentile is : 9.24491882324
+50th percentile is : 18.2762145996
+75th percentile is : 27.4791717529
+800kbps
++ wc -l 8mbps.txt.udp
+99987 8mbps.txt.udp
++ set +v
++ set +x
+minLatency is -0.0483388900757
+Average latency is : 1871.83022431
+25th percentile is : 934.694766998
+50th percentile is : 2101.92489624
+75th percentile is : 2434.49497223
+8mbps
++ wc -l Baseline.txt.udp
+100000 Baseline.txt.udp
++ set +v
++ set +x
+minLatency is 0.183692932129
+Average latency is : 10.4310337543
+25th percentile is : 5.39922714233
+50th percentile is : 10.4730129242
+75th percentile is : 13.9570236206
+Baseline
+

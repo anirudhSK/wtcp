@@ -1,0 +1,12 @@
+x86 :
+
+Just before asserting , ret is 24, sizeof is 24 
+ , sizeof timeval is 16 , sizeof sentdata is 24 
+Just after asserting 
+584 0 0.264028072
+
+ARM :
+
+D/UDP-TIMING(28162): Just before asserting , ret is 24, sizeof is 16
+D/UDP-TIMING(28162):  , sizeof timeval is 8 , sizeof sentdata is 16
+
