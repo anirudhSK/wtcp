@@ -1,0 +1,70 @@
+Tethering the Nexus phones over USB is a big pain, so I have documented it (or most of it here). There are several solutions summarized below : 
+
+
+1. https://play.google.com/store/apps/details?id=com.koushikdutta.tether&hl=en ClockWorkMod Tether. Works without root, but needs client side software. The weird thing is portions of the client are in javascript
+, I am wondering if that ll create a performance bottleneck. It doesn't allow pinging because the js code only handles UDP and TCP but not ICMP (I checked this).
+
+2. ppp over adb : This is the cleanest solution and just involves a few lines of setup on phone (with root) and desktop. https://github.com/ajasmin/android-linux-tethering/blob/master/tether.sh
+Unfortunately, there is no documentation for ppp over adb and I haven't got this to work as yet and I don't know how to debug.
+
+3. Cyanogen mod : New ROM altogether which circumvents the Tether Subscription Check. Have this on one of my phones. 
+
+4. Haven't figured this out : Disable the variable that says Tethering disabled on an Android phone. This amounts to finding the right settings variable and fixing it. I hacked with this a bit, but couldn't find the variable. If this works, it's the simplest solution.
+
+
+The problem with 1 is performance. 2 was unworkable. 3 requires screwing the factory ROM. 4 is just a hunch.
+
+Anyway, we spoke to szym (of Barnacle fame) and we figured out the best way to do tethering on a rooted phone (Follow the older instructions for Rooting a Galaxy Nexus) : 
+
+1. Enable rndis inside the kernel. RNDIS is a Microsoft protocol for Ethernet over USB. The procedure is given below . It's different for each Android version :
+
+From szym :
+"Actually, it seems that svc usb is the new JB interface. 
+On ICS, the shell command would be: setprop sys.usb.config rndis,adb
+On GB, the command was: ndc usb startrndis if I recall correctly."
+
+1a. There is a minor issue with adb getting disabled when rndis is enabled. This is because the device ID changes between adb and rndis. You just need to add one more line to /etc/udev/rules.d/*android*
+
+From szym :
+
+The issue here is udev. When you change the usb mode from adb to
+rndis, the USB device will change. For example, my Galaxy Nexus
+changes from
+18d1:d002 Google Inc. (adb)
+to
+04e8:6864 Samsung Electronics Co., Ltd (rndis)
+
+Check your udev rules that you have access to both.
+
+2. Throw a whole bunch of NAT and routing table code into the desktop and phone to get tethering setup. Then, things will work. This is the last bit, which took quite a while to get right. Here are the setup rules :
+
+"I got the NAT and routes set up finally. It's all manual but it at
+least works. Here are the all the commands, just for posterity . These
+were mostly taken right out of the iptables output from my cyanogenmod
+phone.
+
+ON PHONE------------------------
+setprop sys.usb.config rndis,adb # shell will exit, type adb shell to
+login again
+iptables -t nat -A POSTROUTING -o rmnet1 -j MASQUERADE
+iptables -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT -i
+rmnet1 -o rndis0
+iptables -A FORWARD -j ACCEPT -o rmnet1 -i rndis0
+ifconfig rndis0 192.168.5.2 netmask 255.255.255.0 up
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+ON DESKTOP----------------------------
+sudo ifconfig usb0 192.168.5.1 netmask 255.255.255.0
+ping 192.168.5.1 # local loopback
+ping 192.168.5.2 # ping phone
+sudo route add default gw 192.168.5.2
+ping 128.30.87.130 # ping external IP
+sudo vim /etc/resolv.conf
+nameserver 66.174.95.44 # Verizon's name server
+ping www.google.com # ping url
+
+I think the route step is prone to misconfiguration if the ethernet
+interface on the machine is also active. So, to avoid any residual
+config bugs, it's best if we pull out the LAN cord or do an ifconfig
+eth0 down before starting anything.
+"
