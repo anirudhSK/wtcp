@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" >
+    <TextView android:id="@+id/EnterIP"
+              android:layout_width="110dip" android:text="successes: 0"
+              android:layout_height="wrap_content"></TextView>
+    <EditText
+        android:id="@+id/destIP"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView android:id="@+id/EnterPort"
+              android:layout_width="110dip" android:text="successes: 0"
+              android:layout_height="wrap_content"></TextView>
+    <EditText
+        android:id="@+id/destPort"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"/>
+    <Button
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:onClick="onButtonClicked"/>
+</LinearLayout>

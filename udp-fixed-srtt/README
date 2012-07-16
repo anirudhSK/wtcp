@@ -1,0 +1,3 @@
+An attempt to maintain a fixed srtt through the network. If the srtt is more than the target, increase the sending rate, otherwise decrease it.
+The target is : 250 ms for now. At a high level, this program seeks to optimise the throughput with a latency constraint.
+That's the rough idea.
