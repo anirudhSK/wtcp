@@ -8,9 +8,6 @@
 #include <assert.h>
 #include <time.h>
 #include <string.h>
-// ANIRUDH: Android logging
-#include <jni.h>
-#include <android/log.h>
 #include <errno.h>
 #include "parameters.h"
 // For select 
@@ -30,6 +27,15 @@ struct senderdata {
   int padding[PKT_PADDING];
 };
 
+#define PC 1
+
+// ANIRUDH: Android logging
+#ifndef PC
+#include <jni.h>
+#include <android/log.h>
+#endif
+
+#ifndef PC
 JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env, jobject thiz,jstring destIp, jstring port)
 {
    char** argv=(char**)malloc(sizeof(char*)*10); // ANIRUDH: Mod here
@@ -40,33 +46,46 @@ JNIEXPORT void JNICALL Java_com_example_hellojni_HelloJni_runClient( JNIEnv* env
  //  argv[2]="1025" ;
    mainFunction(3,argv);
 }
+#endif
 
+#ifdef PC
+int main( int argc, char *argv[] )
+#else
 int mainFunction( int argc, char *argv[] )
+#endif
 {
-
   /* Get current timeStamp */
   struct timeval timeStamp;
   gettimeofday(&timeStamp,NULL);
   
   /* Create log file */
   char fileName[100];
+#ifdef PC
+  sprintf(fileName,"../../logs/%d-logsPORTS%d-PADDING-%d.txt", (long)timeStamp.tv_sec,NUM_CONN,PKT_PADDING);
+#else
   sprintf(fileName,"/mnt/sdcard/Logs/%d-logsPORTS%d-PADDING-%d.txt",timeStamp.tv_sec,NUM_CONN,PKT_PADDING);
+#endif
 
   /* Open file for logging */
   FILE * logFileHandle;
   logFileHandle=fopen(fileName,"w");
 
   /* command line argument handling */ 
-  if ( argc != 3 ) {
+  if ( (argc < 3) || (argc > 4 )) {
+#ifndef PC
     fprintf(logFileHandle, "Usage: %s IP PORT\n", argv[ 0 ] );
+#else
+    fprintf(stderr, "Usage: %s server_ip server_port [local_ip] \n", argv[ 0 ] );    
+#endif
     exit( 1 );
   }
 
   char *ip = argv[ 1 ];
   int port = atoi( argv[ 2 ] );
 
-  if ( port <= 0 ) {
+  if ( port <= 0 || port >= 65536 ) {
     fprintf(logFileHandle, "%s: Bad port %s\n", argv[ 0 ], argv[ 2 ] );
+    //    printf("%s: Bad port %s\n", argv[ 0 ], argv[ 2 ] );
     exit( 1 );
   }
 
@@ -80,10 +99,11 @@ int mainFunction( int argc, char *argv[] )
   addr.sin_port = htons( port );
   if ( !inet_aton(ip, &addr.sin_addr ) ) {
     fprintf(logFileHandle, "%s: Bad IP address %s\n", argv[ 0 ], ip );
+    printf("%s: Bad IP address %s\n", argv[ 0 ], ip );
     exit( 1 );
   }
   /* start of source ports */
-  int srcPort=port +1000;// set it same as destination port for now. 
+  int srcPort=port + 1000;// set it same as destination port for now. 
   int i=0;
   fd_set master;    // master file descriptor list
   FD_ZERO(&master); // clear out the master file descriptor . Very important to get this right, otherwise select has no effect, it's like the select line doesn't exist. 
@@ -100,6 +120,11 @@ int mainFunction( int argc, char *argv[] )
     srcAddr[i].sin_family = AF_INET;
     srcAddr[i].sin_port = htons(srcPort+i);
     srcAddr[i].sin_addr.s_addr = INADDR_ANY;
+    if (argc == 4) {
+      printf("using localip %s\n", argv[3]);
+      inet_aton(argv[ 3 ], &(srcAddr[i].sin_addr));
+    }
+
     if ( bind( socketArray[i], (struct sockaddr *)&srcAddr[i], sizeof(srcAddr[i]) ) < 0 ) {
       perror( "bind" );
       exit( 1 );
@@ -107,6 +132,7 @@ int mainFunction( int argc, char *argv[] )
     /* connect to the remote stationery server */
     if (connect( socketArray[i], (struct sockaddr *)&addr, sizeof( addr ) ) < 0 ) {
       fprintf(logFileHandle, "connect: %s \n",strerror(errno) );
+      printf("connect: %s \n",strerror(errno) );
       exit( 1 );
     }
     /* ask for timestamps */
@@ -119,19 +145,21 @@ int mainFunction( int argc, char *argv[] )
     /* send initial datagram */
     if ( send( socketArray[i], NULL, 0, 0 ) < 0 ) {
       fprintf(logFileHandle, "send: %s \n",strerror(errno) );
+      printf("send: %s \n",strerror(errno) );
       exit( 1 );
     }
     FD_SET(socketArray[i],&master);
   }
   
-  fprintf(logFileHandle,"ports %d parameters PADDING %d, \n",NUM_CONN,PKT_PADDING);
+  fprintf(logFileHandle,"ports %d parameters PADDING %d\n",NUM_CONN,PKT_PADDING);
+  printf("ports %d parameters PADDING %d, \n",NUM_CONN,PKT_PADDING);
 
   int last_secs = 0, first_secs = -1;
   int datagram_count = 0;
 
   // pick the maximum file descriptor 
   int fdmax=socketArray[0];
-  for (i=0;i<NUM_CONN;i++) 
+  for (i=1; i<NUM_CONN; i++) 
      if(fdmax<socketArray[i]) fdmax=socketArray[i];
   fdmax=fdmax+1;
 
@@ -155,9 +183,10 @@ int mainFunction( int argc, char *argv[] )
     int retval=select(fdmax, &master, NULL,NULL,NULL);
     if(retval<0) { 
       fprintf(logFileHandle,"select: %s \n",strerror(errno));
+      printf("select: %s \n",strerror(errno));
       exit(1) ;
     }
-    fprintf(logFileHandle,"just after selecting \n");
+    //    fprintf(logFileHandle,"just after selecting \n");
     i=0;
     for(i = 0; i < NUM_CONN; i++) {
                     // check for data
@@ -177,7 +206,7 @@ int mainFunction( int argc, char *argv[] )
         struct cmsghdr *ts_hdr = CMSG_FIRSTHDR( &header );
         assert( ts_hdr );
         assert( ts_hdr->cmsg_level == SOL_SOCKET );
-        assert( ts_hdr->cmsg_type == SO_TIMESTAMP );
+        //        assert( ts_hdr->cmsg_type == SO_TIMESTAMP );
         struct timeval *ts = (struct timeval *)CMSG_DATA( ts_hdr );
 
         /* get sender data */

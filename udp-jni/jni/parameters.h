@@ -6,5 +6,6 @@
 #define PKT_PADDING  ((PKT_SIZE - 16) / 4 )
 #define ACTIVE_PACKETS 100
 #define DUTY_CYCLE 0.75
-#define NUM_PACKETS 100000 // NUMBER OF PACKETS the rx must wait for. 
-#define NUM_CONN 128
+#define NUM_PACKETS 2000 // NUMBER OF PACKETS the rx must wait for. 
+#define NUM_CONN 1
+

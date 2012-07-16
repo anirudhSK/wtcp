@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <assert.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -58,19 +59,18 @@ int main( int argc, char *argv[] )
   /* wait for initial datagram from 128 socket-lets */
   int i=0;
   struct sockaddr_in srcAddr[NUM_CONN];
+  int nbytes;
   for(i=0;i<NUM_CONN;i++) {
-   socklen_t addrlen = sizeof( addr );
-   if ( recvfrom( sock, NULL, 0, 0, (sockaddr *)&addr, &addrlen ) < 0 ) {
-     perror( "recvfrom" );
-     exit( 1 );
-   }
-  fprintf( stderr, "Received datagram from %s:%d\n",
-	   inet_ntoa( addr.sin_addr ),
-	   ntohs( addr.sin_port ) );
-
-   srcAddr[i]=addr; 
+    socklen_t addrlen = sizeof( addr );
+    if ( nbytes = recvfrom( sock, NULL, 0, 0, (sockaddr *)&addr, &addrlen ) < 0) {
+      perror( "recvfrom" );
+      exit( 1 );
+    }
+    fprintf( stderr, "Received datagram from %s:%d %d bytes\n",
+             inet_ntoa( addr.sin_addr ), ntohs( addr.sin_port ), nbytes );
+    
+    srcAddr[i]=addr; 
   }
-
 
   int datagram_count = 0;
   int queue_len = -1;
@@ -79,17 +79,19 @@ int main( int argc, char *argv[] )
   while ( 1 ) {
     /* pause if necessary */
     while ( 1 ) {
-      if ( ioctl( sock, TIOCOUTQ, &queue_len ) < 0 ) {
-	perror( "ioctl" );
-	exit( 1 );
-      }
+      //      if ( ioctl( sock, TIOCOUTQ, &queue_len ) < 0 ) {
+      //	perror( "ioctl" );
+      //	exit( 1 );
+      //}
 
       if ( queue_len > 4096 ) {
-	assert( usleep( 1 ) == 0 );
+        assert( usleep( 1 ) == 0 );
       } else {
-	break;
+        break;
       }
     }
+
+    printf("About to send (nbytes was %d)\n", nbytes);
 
     /* send datagrams to target */
     struct senderdata data;
