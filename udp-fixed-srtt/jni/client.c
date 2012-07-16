@@ -188,7 +188,7 @@ int mainFunction( int argc, char *argv[] )
         memcpy( &data, msg_payload, ret );
 
         /*ACK it right back , with the original timestamp echoed inside */
-        if (send( sock, &data,sizeof(data) , 0 ) < 0 ) {
+        if (send( socketArray[i], &data,sizeof(data) , 0 ) < 0 ) {
           fprintf(logFileHandle,"UDP-TIMING", "send: %s \n",strerror(errno));
           exit(1);
         }
