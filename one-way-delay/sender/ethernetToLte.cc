@@ -6,6 +6,21 @@
 #include "socket.hh"
 
 using namespace std;
+/* global values */
+uint64_t stt=0;
+/* maintain a vector of packet statistics , only sent_time is used for stt */
+struct packetstat {
+ uint64_t sent_time;
+ int dest;
+ bool received;
+};
+/* stt is written by the rx, packetstat is written by the sender */
+const int NUM_PACKETS=10000;
+vector<struct packetstat> packetstats( NUM_PACKETS );
+const double ALPHA=0.125;
+const int TARGET_TT=250000; /* 250 ms or 250000 us */
+const int epsilon=5000 ;    /* 5 ms leeway around that. */
+
 
 /* send packet from lte to ethernet to punch a NAT hole */
 /* Use this packet at the ethernet to infer end point */
@@ -29,21 +44,6 @@ Socket::Address getNatAddr( const Socket & sender, const Socket::Address & dest,
 
   return received.addr;
 }
-/* global values */
-uint64_t stt=0;
-/* maintain a vector of packet statistics , only sent_time is used for stt */
-struct packetstat {
- uint64_t sent_time;
- int dest;
- bool received;
-};
-/* stt is written by the rx, packetstat is written by the sender */
-const int NUM_PACKETS=10000;
-vector<struct packetstat> packetstats( NUM_PACKETS );
-const double ALPHA=0.125;
-const int TARGET_TT=250000; /* 250 ms or 250000 us */
-const int epsilon=5000 ;    /* 5 ms leeway around that. */
-
 /* update smoothed transit time based on new value */ 
 uint64_t updateStt(uint64_t tt, uint64_t stt) {
    return uint64_t(ALPHA*((double)tt) + (1-ALPHA)*((double)stt)) ;
@@ -62,28 +62,35 @@ void* lteReceiver(void* receiverSocket ) {
     pollfds[ i ].fd = lteSocket.get_sock();
     pollfds[ i ].events = POLLIN;
   }
+  printf("Created polling file descriptors \n");
   while(1) {
        /* now, poll */
-    if ( poll( pollfds, 1, -1 ) <= 0 ) {
+
+    if ( poll( pollfds, 2, -1 ) <= 0 ) {
       perror( "poll" );
       exit( 1 );
     }
-    
+   
     for ( int i = 0; i < 1; i++ ) {
+      //printf("The i value is %d \n",i);
       if ( pollfds[ i ].revents & POLLERR ) {
-	fprintf( stderr, "Error on LTE %d\n", i );
-	exit( 1 );
+        fprintf( stderr, "Error on LTE %d\n", i );
+        exit( 1 );
       }
-
       if ( pollfds[ i ].revents & POLLIN ) {
-	Socket::Packet rec = lteSocket.recv();
-	//	assert ( rec.payload.size() == sizeof( packets_sent ) );
+        printf("POLLIN satisfied \n");
+
+        printf("Trying to receive \n");
+        Socket::Packet rec = lteSocket.recv();
+        printf("Recieved \n");
+        //	assert ( rec.payload.size() == sizeof( packets_sent ) );
         uint64_t receivedTs=rec.timestamp;
         uint64_t seq=*(uint64_t *)rec.payload.data();
         printf("Transit time of packet %lu is %f milliseconds, sent at %lu us , received at %lu us \n",seq,(double)(receivedTs-packetstats[seq].sent_time)/1000,packetstats[seq].sent_time,receivedTs);
         uint64_t tt=receivedTs-packetstats[seq].sent_time;
         stt=updateStt(tt,stt);
        }
+    return NULL;
     }
   }
 }
@@ -108,6 +115,7 @@ int main() {
     if(pthread_create(&lteReceiverThread, NULL, &lteReceiver,&lteSocket ))  {
        printf("Could not create receiver thread \n");
     }
+    printf("Just created lteReceiver thread \n");
     /* sending loop ie ethernetSender */
     int numSent =0 ; /* number sent out so far */
     double currentPacketRate=100; /*current Rate at the sender, start it out at 100 Hz */

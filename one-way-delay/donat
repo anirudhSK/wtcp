@@ -10,10 +10,10 @@ my @script = ( q[iptables -t nat -F],
 	       q[ifconfig rndis0 10.100.DEVICENUM.2 netmask 255.255.255.0 up],
 	       q[echo 1 > /proc/sys/net/ipv4/ip_forward] );
 
-my @devs = ( 'x', 'usb0', 'usb1', 'usb2' );
+my @devs = ( 'x', 'usb0' );
 
-for my $device ( qw[A B C] ) {
-  my ( $num ) = $device =~ tr{ABC}{123}r;
+for my $device ( qw[A] ) {
+  my ( $num ) = $device =~ tr{A}{1}r;
   my $dev = $devs[ $num ];
 
   for my $line ( @script ) {
