@@ -15,11 +15,11 @@ struct packetstat {
  bool received;
 };
 /* stt is written by the rx, packetstat is written by the sender */
-const int NUM_PACKETS=100;
+const int NUM_PACKETS=1000;
 vector<struct packetstat> packetstats( NUM_PACKETS );
 const double ALPHA=0.125;
-const int TARGET_TT=250000; /* 250 ms or 250000 us */
-const int epsilon=5000 ;    /* 5 ms leeway around that. */
+const uint64_t TARGET_TT=250000000; /* 250 ms or 250000 us */
+const uint64_t epsilon=5000000 ;    /* 5 ms leeway around that. */
 
 
 /* send packet from lte to ethernet to punch a NAT hole */
@@ -42,18 +42,18 @@ Socket::Address getNatAddr( const Socket & sender, const Socket::Address & dest,
 }
 /* update smoothed transit time based on new value */ 
 uint64_t updateStt(uint64_t tt, uint64_t stt) {
-   return uint64_t(ALPHA*((double)tt) + (1-ALPHA)*((double)stt)) ;
+   if (stt==0) return tt;
+   else return uint64_t(ALPHA*((double)tt) + (1-ALPHA)*((double)stt)) ;
 }
 /* check for congestion based on rtt and change sleepTime accordingly */
-uint32_t checkCongestion(uint64_t stt,double currentRate) {
-   if(stt>TARGET_TT+epsilon) return (currentRate/2); /* Multiplicative decrease */ 
-   else if(stt<TARGET_TT -epsilon) return (currentRate+1); /*Additive increase in some sense */ 
+double checkCongestion(uint64_t stt,double currentRate) {
+   if(stt>TARGET_TT+epsilon) return (currentRate/2.0); /* Multiplicative decrease */ 
+   else if(stt<TARGET_TT -epsilon) return (currentRate+1.0); /*Additive increase in some sense */ 
    else return currentRate; /* sit tight */
 }
 /* lteReceiver */
 void* lteReceiver(void* receiverSocket ) {
   Socket lteSocket=*((Socket* )(receiverSocket));
-  printf("Created polling file descriptors \n");
   while(1) {
         Socket::Packet rec = lteSocket.recv();
         //	assert ( rec.payload.size() == sizeof( packets_sent ) );
@@ -68,7 +68,7 @@ void* lteReceiver(void* receiverSocket ) {
 int main() {
     /* Create and bind Ethernet socket */
     Socket ethernetSocket;
-    Socket::Address ethernetAddress( "128.30.87.51", 9000 );
+    Socket::Address ethernetAddress( "128.30.87.130", 9000 );
     ethernetSocket.bind( ethernetAddress );
     ethernetSocket.bind_to_device( "eth0" );
 
@@ -92,7 +92,7 @@ int main() {
     double currentPacketRate=1.0; /*current Rate at the sender, start it out at 100 Hz */
     while(numSent < NUM_PACKETS) {
        /* check current stt , for instantaneous feedback */
-       //currentPacketRate=checkCongestion(stt,currentPacketRate);
+       currentPacketRate=checkCongestion(stt,currentPacketRate);
        usleep(1000000/currentPacketRate); /*currentRate is in packets per second, usleep takes us */
        char *seq_encoded = (char *)&numSent;
        packetstats[ numSent ].sent_time = Socket::timestamp(); /* maintain state to calc stt */
