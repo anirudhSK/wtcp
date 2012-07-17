@@ -1,0 +1,15 @@
+Can't believe I am doing this :
+
+Main() :
+
+nat routine to get IP address. 
+spawn lte-receiver thread .
+ethernet-sender logic here : keep sending packets after checking srtt before sending each packet. Maybe you want to check derivative as well.  
+
+lte-receiver :
+Send first packet
+Spin in loop (waiting for packets)
+Update srtt on every packet,
+
+
+srtt smoothed receive rate etc are shared variables. There is no need for a mutex because only the receiver ever writes them. 
