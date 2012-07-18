@@ -4,10 +4,12 @@
 #include <assert.h>
 
 #include "socket.hh"
-
+#define min(x,y) (x<y ? x : y)
+#define max(x,y) (x>y ? x : y)
 using namespace std;
 /* global values */
 uint64_t stt=0;
+double currentPacketRate=1.0; /*current Rate at the sender, start it out at 100 Hz */
 /* maintain a vector of packet statistics , only sent_time is used for stt */
 struct packetstat {
  uint64_t sent_time;
@@ -47,8 +49,12 @@ uint64_t updateStt(uint64_t tt, uint64_t stt) {
 }
 /* check for congestion based on rtt and change sleepTime accordingly */
 double checkCongestion(uint64_t stt,double currentRate) {
-   if(stt>TARGET_TT+epsilon) return (currentRate/2.0); /* Multiplicative decrease */ 
-   else if(stt<TARGET_TT -epsilon) return (currentRate+1.0); /*Additive increase in some sense */ 
+   if(stt>TARGET_TT+epsilon) {
+     return max((currentRate/2.0),1.0); /* Multiplicative decrease */ 
+   }
+   else if(stt<TARGET_TT -epsilon)  {
+     return min((currentRate+1.0),1000); /*Additive increase in some sense */ 
+   }
    else return currentRate; /* sit tight */
 }
 /* lteReceiver */
@@ -59,9 +65,14 @@ void* lteReceiver(void* receiverSocket ) {
         //	assert ( rec.payload.size() == sizeof( packets_sent ) );
         uint64_t receivedTs=rec.timestamp;
         uint64_t seq=*(uint64_t *)rec.payload.data();
-        printf("Transit time of packet %lu is %f ms,  stt is %f  ms \n",seq,(double)(receivedTs-packetstats[seq].sent_time)/1000000,(double)stt/1000000);
         uint64_t tt=receivedTs-packetstats[seq].sent_time;
-        stt=updateStt(tt,stt);
+        stt=updateStt(tt,stt);   // update stt
+        currentPacketRate=checkCongestion(stt,currentPacketRate); // update packet rate
+        printf("Packet %lu ,received at %f ms, delay: %f ms, stt: %f  ms , new rate : %f Hz \n",seq,
+                                                                                           (double)receivedTs/1000000,
+                                                                                           (double)(receivedTs-packetstats[seq].sent_time)/1000000,
+                                                                                           (double)stt/1000000, 
+                                                                                           currentPacketRate);
        }
   return NULL;
 }
@@ -89,15 +100,12 @@ int main() {
 //    printf("Just created lteReceiver thread \n");
     /* sending loop ie ethernetSender */
     int numSent =0 ; /* number sent out so far */
-    double currentPacketRate=1.0; /*current Rate at the sender, start it out at 100 Hz */
     while(numSent < NUM_PACKETS) {
        /* check current stt , for instantaneous feedback */
-       currentPacketRate=checkCongestion(stt,currentPacketRate);
        usleep(1000000/currentPacketRate); /*currentRate is in packets per second, usleep takes us */
        char *seq_encoded = (char *)&numSent;
        packetstats[ numSent ].sent_time = Socket::timestamp(); /* maintain state to calc stt */
        ethernetSocket.send(Socket::Packet(lteEndPoint, string( seq_encoded, 51 ) ) );      
-       printf("Current packet rate is %f \n",currentPacketRate);
        numSent++;
     }
 }
