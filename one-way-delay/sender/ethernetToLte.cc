@@ -10,6 +10,7 @@ using namespace std;
 /* global values */
 uint64_t stt=0;
 double currentPacketRate=1.0; /*current Rate at the sender, start it out at 100 Hz */
+long int sendBytes=50;           /* number of bytes to put into packet */ 
 /* maintain a vector of packet statistics , only sent_time is used for stt */
 struct packetstat {
  uint64_t sent_time;
@@ -17,7 +18,7 @@ struct packetstat {
  bool received;
 };
 /* stt is written by the rx, packetstat is written by the sender */
-const int NUM_PACKETS=1000;
+const int NUM_PACKETS=10000;
 vector<struct packetstat> packetstats( NUM_PACKETS );
 const double ALPHA=0.125;
 const uint64_t TARGET_TT=250000000; /* 250 ms or 250000 us */
@@ -49,11 +50,14 @@ uint64_t updateStt(uint64_t tt, uint64_t stt) {
 }
 /* check for congestion based on rtt and change sleepTime accordingly */
 double checkCongestion(uint64_t stt,double currentRate) {
-   if(stt>TARGET_TT+epsilon) {
-     return max((currentRate/2.0),1.0); /* Multiplicative decrease */ 
+   if(stt>TARGET_TT-epsilon) {
+//       return currentRate       ;
+     sendBytes=max(1,50)     ; /* At least send 50 bytes in a packet */
+     return max(0.1,1.0); /* Multiplicative decrease */ 
    }
    else if(stt<TARGET_TT -epsilon)  {
-     return min((currentRate+1.0),1000); /*Additive increase in some sense */ 
+     sendBytes=min(sendBytes+10,1000);   /* Not more than 500 bytes per packet */
+     return min((currentRate+10.0),500); /*Additive increase in some sense */ /* Not more than 500 packets per second */
    }
    else return currentRate; /* sit tight */
 }
@@ -68,18 +72,19 @@ void* lteReceiver(void* receiverSocket ) {
         uint64_t tt=receivedTs-packetstats[seq].sent_time;
         stt=updateStt(tt,stt);   // update stt
         currentPacketRate=checkCongestion(stt,currentPacketRate); // update packet rate
-        printf("Packet %lu ,received at %f ms, delay: %f ms, stt: %f  ms , new rate : %f Hz \n",seq,
+        printf("Packet %lu ,received at %f ms, delay: %f ms, stt: %f  ms , new rate : %f bytesPerSec \n",seq,
                                                                                            (double)receivedTs/1000000,
                                                                                            (double)(receivedTs-packetstats[seq].sent_time)/1000000,
                                                                                            (double)stt/1000000, 
-                                                                                           currentPacketRate);
-       }
+                                                                                           currentPacketRate*sendBytes);
+        
+ }
   return NULL;
 }
 int main() {
     /* Create and bind Ethernet socket */
     Socket ethernetSocket;
-    Socket::Address ethernetAddress( "128.30.87.130", 9000 );
+    Socket::Address ethernetAddress( "18.251.5.213", 9000 );
     ethernetSocket.bind( ethernetAddress );
     ethernetSocket.bind_to_device( "eth0" );
 
@@ -105,7 +110,7 @@ int main() {
        usleep(1000000/currentPacketRate); /*currentRate is in packets per second, usleep takes us */
        char *seq_encoded = (char *)&numSent;
        packetstats[ numSent ].sent_time = Socket::timestamp(); /* maintain state to calc stt */
-       ethernetSocket.send(Socket::Packet(lteEndPoint, string( seq_encoded, 51 ) ) );      
+       ethernetSocket.send(Socket::Packet(lteEndPoint, string( seq_encoded, sendBytes) ) );     
        numSent++;
     }
 }

@@ -43,7 +43,7 @@ private:
 public:
   Socket();
   void bind( const Address & addr ) const;
-  void send( const Packet & payload ) const;
+  ssize_t send( const Packet & payload ) const;
   void bind_to_device( const std::string & name ) const;
   Packet recv( void ) const;
   int get_sock( void ) const { return sock; }

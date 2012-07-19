@@ -54,13 +54,14 @@ void Socket::bind( const Socket::Address & addr ) const
   }
 }
 
-void Socket::send( const Socket::Packet & packet ) const
+ssize_t Socket::send( const Socket::Packet & packet ) const
 {
   ssize_t bytes_sent = sendto( sock, packet.payload.data(), packet.payload.size(), 0,
 			       (sockaddr *)&packet.addr.sockaddr(), sizeof( packet.addr.sockaddr() ) );
   if ( bytes_sent != static_cast<ssize_t>( packet.payload.size() ) ) {
     perror( "sendto" );
   }
+  return bytes_sent;
 }
 
 void Socket::bind_to_device( const std::string & name ) const
