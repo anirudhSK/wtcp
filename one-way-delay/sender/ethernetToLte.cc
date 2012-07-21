@@ -50,14 +50,13 @@ uint64_t updateStt(uint64_t tt, uint64_t stt) {
 }
 /* check for congestion based on rtt and change sleepTime accordingly */
 double checkCongestion(uint64_t stt,double currentRate) {
-   if(stt>TARGET_TT-epsilon) {
-//       return currentRate       ;
-     sendBytes=max(1,50)     ; /* At least send 50 bytes in a packet */
-     return max(0.1,1.0); /* Multiplicative decrease */ 
+   if(stt>TARGET_TT*0.75) {
+     sendBytes=max(sendBytes/2,50)     ; /* At least send 50 bytes in a packet */
+     return max(currentRate/2,1.0); /* Multiplicative decrease, At least send 1Hz for NAT mapping */ 
    }
-   else if(stt<TARGET_TT -epsilon)  {
-     sendBytes=min(sendBytes+10,1000);   /* Not more than 500 bytes per packet */
-     return min((currentRate+10.0),500); /*Additive increase in some sense */ /* Not more than 500 packets per second */
+   else if(stt<0.75*TARGET_TT)  {
+     sendBytes=min(sendBytes+10,1250);   /* Not more than 1250 bytes per packet */
+     return min((currentRate+10.0),1500); /*Additive increase in some sense */ /* Not more than 750 packets per second */
    }
    else return currentRate; /* sit tight */
 }
@@ -84,7 +83,7 @@ void* lteReceiver(void* receiverSocket ) {
 int main() {
     /* Create and bind Ethernet socket */
     Socket ethernetSocket;
-    Socket::Address ethernetAddress( "18.251.5.213", 9000 );
+    Socket::Address ethernetAddress( "18.251.7.128", 9000 );
     ethernetSocket.bind( ethernetAddress );
     ethernetSocket.bind_to_device( "eth0" );
 
