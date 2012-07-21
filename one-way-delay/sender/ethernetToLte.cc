@@ -52,11 +52,11 @@ uint64_t updateStt(uint64_t tt, uint64_t stt) {
 double checkCongestion(uint64_t stt,double currentRate) {
    if(stt>TARGET_TT*0.75) {
      sendBytes=max(sendBytes/2,50)     ; /* At least send 50 bytes in a packet */
-     return max(currentRate/2,1.0); /* Multiplicative decrease, At least send 1Hz for NAT mapping */ 
+     return max(currentRate/2,1.0); /* Multiplicative decrease, At least send 1Hz for maintaining NAT mapping */ 
    }
    else if(stt<0.75*TARGET_TT)  {
      sendBytes=min(sendBytes+10,1250);   /* Not more than 1250 bytes per packet */
-     return min((currentRate+10.0),1500); /*Additive increase in some sense */ /* Not more than 750 packets per second */
+     return min((currentRate+10.0),1500); /*Additive increase in some sense */ /* Not more than 1500 packets per second */
    }
    else return currentRate; /* sit tight */
 }
