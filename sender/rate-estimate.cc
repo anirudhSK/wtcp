@@ -5,6 +5,8 @@
 RateEstimate::RateEstimate( const double s_empty_rate_estimate, const unsigned int s_averaging_extent_ms )
   : empty_rate_estimate( s_empty_rate_estimate),
     averaging_extent_ms( s_averaging_extent_ms ),
+    ALPHA(0.125),
+    current_rate(-1),
     history()
 {
 }
@@ -23,7 +25,13 @@ double RateEstimate::get_rate( void )
     return empty_rate_estimate;
   }
 
-  return 1000.0 * (double) num_packets / (double) averaging_extent_ms;
+  double rate_sample= 1000.0 * (double) num_packets / (double) averaging_extent_ms;
+  if(current_rate==-1) {
+     current_rate = rate_sample; 
+  } else {
+     current_rate = ALPHA*rate_sample + (1-ALPHA)*current_rate; /* Simple EWMA filter */ 
+  }
+  return current_rate; 
 }
 
 void RateEstimate::housekeeping( void )

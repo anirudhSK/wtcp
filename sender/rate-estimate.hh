@@ -11,6 +11,8 @@ class RateEstimate
 private:
   const double empty_rate_estimate; /* packets per second */
   const unsigned int averaging_extent_ms;
+  const double ALPHA ; /* Averaging EWMA filter */
+  double current_rate;             /* Smoothed running average */ 
   std::queue< Payload > history;
 
   void housekeeping( void ); /* cull packets older than averaging_extent_ms */
