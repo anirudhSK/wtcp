@@ -1,5 +1,5 @@
 #include <assert.h>
-
+#include <stdio.h>
 #include "rate-estimate.hh"
 
 RateEstimate::RateEstimate( const double s_empty_rate_estimate, const unsigned int s_averaging_extent_ms )

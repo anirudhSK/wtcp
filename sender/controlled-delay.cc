@@ -40,7 +40,7 @@ int main( void )
 {
   /* Create and bind Ethernet socket */
   Socket ethernet_socket;
-  Socket::Address ethernet_address( "128.30.76.255", 9000 );
+  Socket::Address ethernet_address( "128.30.87.130", 9000 );
   ethernet_socket.bind( ethernet_address );
   ethernet_socket.bind_to_device( "eth0" );
 
@@ -51,7 +51,9 @@ int main( void )
   lte_socket.bind_to_device( "usb0" );
 
   /* Figure out the NAT addresses of each of the three LTE sockets */
+  printf(" Trying to get NAT address \n");
   Socket::Address target( get_nat_addr( lte_socket, ethernet_address, ethernet_socket ) );
+  printf (" Got NAT address \n");
   fprintf( stderr, "LTE = %s\n", target.str().c_str() );
 
   RateEstimate rate_estimator( 1.0, 1000 );
@@ -68,6 +70,7 @@ int main( void )
   uint64_t next_transmission = Socket::timestamp();
   uint64_t last_transmission = next_transmission;
 
+  double stt=-1;
   while ( 1 ) {
     fflush( NULL );
     
@@ -139,7 +142,13 @@ int main( void )
       if ( contents->process_id == my_pid ) {
 	rate_estimator.add_packet( *contents );
 	packets_outstanding--;
-	printf( "delay = %f recvrate = %f sendrate = %f queueest = %f\n", (contents->recv_timestamp - contents->sent_timestamp) / 1.0e6,
+        if(stt==-1) {
+           stt=(contents->recv_timestamp - contents->sent_timestamp) / 1.0e6 ;
+        }
+        else {
+           stt=0.125*((contents->recv_timestamp - contents->sent_timestamp) / 1.0e6) + 0.875*stt;
+        }    
+	printf( "stt = %f delay = %f recvrate = %f sendrate = %f queueest = %f\n", stt,(contents->recv_timestamp - contents->sent_timestamp) / 1.0e6,
 		rate_estimator.get_rate(),
 		extra_packet_rate,
 		(double) packets_outstanding / rate_estimator.get_rate() );
