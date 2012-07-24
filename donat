@@ -27,6 +27,10 @@ for my $device ( qw[A B C] ) {
   system( "sudo route add -net default gw 10.100.$num.2 metric 2" );
   system( "echo 0 | sudo tee /proc/sys/net/ipv4/conf/$dev/rp_filter" );
   system( "echo 1 | sudo tee /proc/sys/net/ipv4/conf/$dev/accept_local" );
+  system( "echo 0 | sudo tee /proc/sys/net/ipv4/conf/all/rp_filter" );
+  system( "echo 1 | sudo tee /proc/sys/net/ipv4/conf/all/accept_local" );
+  system( "echo 0 | sudo tee /proc/sys/net/ipv4/conf/default/rp_filter" );
+  system( "echo 1 | sudo tee /proc/sys/net/ipv4/conf/default/accept_local" );
 }
 
 # A: 8a:71:5f:ef:c7:5e
