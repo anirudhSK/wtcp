@@ -50,33 +50,36 @@ int main( int argc, char* argv[] )
   lte_socket.bind( Socket::Address( "10.100.1.1", 9001 ) );
   lte_socket.bind_to_device( "usb0" );
 
+  /* get packet size */
+  if(argc<2) {
+    printf("Usage : controlled-delay PACKET_SIZE \n");
+    exit(1); 
+  }
+
   /* Figure out the NAT addresses of each of the three LTE sockets */
   printf(" Trying to get NAT address \n");
   Socket::Address target( get_nat_addr( lte_socket, ethernet_address, ethernet_socket ) );
   printf (" Got NAT address \n");
   fprintf( stderr, "LTE = %s\n", target.str().c_str() );
 
-  if(argc<2) {
-    printf("Usage : controlled-delay PACKET_SIZE \n");
-    exit(1); 
-  }
-  const double STARTING_RATE=1.0; /* 1 packet per sec */
-  const double AVERAGE_INTERVAL=1000; /* 1000 ms */ 
-  RateEstimate rate_estimator( 1.0, 1000 );
+  const double STARTING_RATE=10.0; /* 5 packet per sec */
+  const double AVERAGE_INTERVAL=100; /* 100 ms */ 
+  RateEstimate rate_estimator( STARTING_RATE, AVERAGE_INTERVAL );
   
   const unsigned int PACKET_SIZE = atoi(argv[1]); /* get from user */ 
   unsigned int packets_outstanding = 0;
   unsigned int packets_sent = 0;
 
-  const double QUEUE_DURATION_TARGET = 2.0;
-  const double STEERING_TIME = 1.0;
+  const double QUEUE_DURATION_TARGET = 0.1; /* 100 ms target */ 
+  const double STEERING_TIME = 0.05;
 
+  const double COARSE_TIMEOUT = 2.e9 ; /* 2 second coarse timeout from the last transmitted packet */
   int my_pid = (int) getpid();
 
   uint64_t next_transmission = Socket::timestamp();
   uint64_t last_transmission = next_transmission;
 
-  printf("Parameters PACKET_SIZE : %d , QUEUE_DURATION_TARGET : %f, STEERING_TIME : %f , STARTING_RATE : %f , AVERAGE_INTERVAL : %f \n",
+  printf("Parameters PACKET_SIZE : %d bytes, QUEUE_DURATION_TARGET : %f seconds, STEERING_TIME : %f seconds , STARTING_RATE : %f Hz , AVERAGE_INTERVAL :  %f milliseconds \n",
                      PACKET_SIZE, QUEUE_DURATION_TARGET, STEERING_TIME, STARTING_RATE, AVERAGE_INTERVAL);
   double stt=-1;
   while ( 1 ) {
@@ -105,7 +108,8 @@ int main( int argc, char* argv[] )
       /* schedule next transmission */
       next_transmission = last_transmission + interpacket_delay;
     } else {
-      next_transmission = uint64_t( -1 ); /* never */
+      next_transmission = last_transmission + COARSE_TIMEOUT ; // wait 2 seconds for the last transmission to timeout. This replaces "never"
+      packets_outstanding = 0 ; // now all packets have timed out since the last one did. 
     }
 
     //    printf( "Queue duration estimate: %f\n", queue_duration_estimate );
@@ -124,7 +128,8 @@ int main( int argc, char* argv[] )
       /* schedule next transmission */
       next_transmission = last_transmission + interpacket_delay;
     } else {
-      next_transmission = uint64_t( -1 ); /* never */
+      next_transmission = last_transmission + COARSE_TIMEOUT ; // wait 2 seconds for the last transmission to timeout. This replaces "never"
+      packets_outstanding = 0 ; // now all packets have timed out since the last one did. 
     }
 
     /* wait for incoming packet OR expiry of timer */
