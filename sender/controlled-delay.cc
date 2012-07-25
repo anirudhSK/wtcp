@@ -36,11 +36,11 @@ double hread( uint64_t in )
   return (double) in / 1.e9;
 }
 
-int main( void )
+int main( int argc, char* argv[] )
 {
   /* Create and bind Ethernet socket */
   Socket ethernet_socket;
-  Socket::Address ethernet_address( "128.30.87.130", 9000 );
+  Socket::Address ethernet_address( "18.251.6.223", 9000 );
   ethernet_socket.bind( ethernet_address );
   ethernet_socket.bind_to_device( "eth0" );
 
@@ -56,9 +56,15 @@ int main( void )
   printf (" Got NAT address \n");
   fprintf( stderr, "LTE = %s\n", target.str().c_str() );
 
+  if(argc<2) {
+    printf("Usage : controlled-delay PACKET_SIZE \n");
+    exit(1); 
+  }
+  const double STARTING_RATE=1.0; /* 1 packet per sec */
+  const double AVERAGE_INTERVAL=1000; /* 1000 ms */ 
   RateEstimate rate_estimator( 1.0, 1000 );
   
-  const unsigned int PACKET_SIZE = 600;
+  const unsigned int PACKET_SIZE = atoi(argv[1]); /* get from user */ 
   unsigned int packets_outstanding = 0;
   unsigned int packets_sent = 0;
 
@@ -70,6 +76,8 @@ int main( void )
   uint64_t next_transmission = Socket::timestamp();
   uint64_t last_transmission = next_transmission;
 
+  printf("Parameters PACKET_SIZE : %d , QUEUE_DURATION_TARGET : %f, STEERING_TIME : %f , STARTING_RATE : %f , AVERAGE_INTERVAL : %f \n",
+                     PACKET_SIZE, QUEUE_DURATION_TARGET, STEERING_TIME, STARTING_RATE, AVERAGE_INTERVAL);
   double stt=-1;
   while ( 1 ) {
     fflush( NULL );
