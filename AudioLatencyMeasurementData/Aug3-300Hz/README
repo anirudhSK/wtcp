@@ -1,0 +1,8 @@
+Same MAC, Windows setup as earlier
+300 Hz tone instead of 1Khz tone, 
+
+and now the delays are all in and around 85 ms which seems so much more plausible. 
+
+Now, just to recheck, let's send a 1k pulse as control
+
+Btw, my automated checking is still not working. Damn it. I am doing eyeballing for now. 

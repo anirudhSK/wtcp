@@ -1,0 +1,92 @@
+Now, eyeballing latencies on the 1k repeat experiment :
+
+Rx 1 :
+
+1.013 to 1.081
+
+Rx 2 :
+
+1.016 to 
+
+Rx 2 :
+
+1.016 to 1.083
+
+SUMMARY :
+
+Why is the latency down again ? Is it 280 ms or 80 ms I have no clue what  is going on here.  
+
+
+Left delay is  1.0128345 Right delay is 1.0811111 Net delay is -0.0682766
+Now iteration number 1 over at time
+Fri Aug  3 19:41:28 EDT 2012
+Left delay is  1.015873 Right delay is 1.0848073 Net delay is -0.0689343
+Now iteration number 2 over at time
+Fri Aug  3 19:43:28 EDT 2012
+Left delay is  1.013356 Right delay is 1.083288 Net delay is -0.069932
+Now iteration number 3 over at time
+Fri Aug  3 19:44:59 EDT 2012
+Left delay is  1.0072336 Right delay is 1.0760317 Net delay is -0.0687981
+Now iteration number 4 over at time
+Fri Aug  3 19:46:19 EDT 2012
+Left delay is  1.0182766 Right delay is 1.0863946 Net delay is -0.068118
+Now iteration number 5 over at time
+Fri Aug  3 19:47:37 EDT 2012
+Left delay is  1.0128571 Right delay is 1.0820635 Net delay is -0.0692064
+Now iteration number 6 over at time
+Fri Aug  3 19:49:12 EDT 2012
+Left delay is  1.0081406 Right delay is 1.0773243 Net delay is -0.0691837
+Now iteration number 7 over at time
+Fri Aug  3 19:50:41 EDT 2012
+Left delay is  1.0053288 Right delay is 1.0729025 Net delay is -0.0675737
+Now iteration number 8 over at time
+Fri Aug  3 19:52:30 EDT 2012
+Left delay is  1.0065306 Right delay is 1.0752154 Net delay is -0.0686848
+Now iteration number 9 over at time
+Fri Aug  3 19:53:51 EDT 2012
+Left delay is  1.0083447 Right delay is 1.0769388 Net delay is -0.0685941
+Now iteration number 10 over at time
+Fri Aug  3 19:55:24 EDT 2012
+Left delay is  1.0064399 Right delay is 1.075102 Net delay is -0.0686621
+Now iteration number 11 over at time
+Fri Aug  3 19:57:11 EDT 2012
+Left delay is  1.008458 Right delay is 1.0753288 Net delay is -0.0668708
+Now iteration number 12 over at time
+Fri Aug  3 19:58:49 EDT 2012
+Left delay is  1.0035374 Right delay is 1.0716553 Net delay is -0.0681179
+Now iteration number 13 over at time
+Fri Aug  3 20:00:22 EDT 2012
+Left delay is  1.0044671 Right delay is 1.0923129 Net delay is -0.0878458
+Now iteration number 14 over at time
+Fri Aug  3 20:02:21 EDT 2012
+Left delay is  1.0104762 Right delay is 1.0981179 Net delay is -0.0876417
+Now iteration number 15 over at time
+Fri Aug  3 20:04:47 EDT 2012
+Left delay is  1.0051927 Right delay is 1.0926757 Net delay is -0.087483
+Now iteration number 16 over at time
+Fri Aug  3 20:07:43 EDT 2012
+Left delay is  1.0043537 Right delay is 1.0895465 Net delay is -0.0851928
+Now iteration number 17 over at time
+Fri Aug  3 20:09:54 EDT 2012
+Left delay is  0.97546485 Right delay is 1.0614512 Net delay is -0.08598635
+Now iteration number 18 over at time
+Fri Aug  3 20:12:19 EDT 2012
+Left delay is  1.0048073 Right delay is 1.090907 Net delay is -0.0860997
+Now iteration number 19 over at time
+Fri Aug  3 20:14:42 EDT 2012
+Left delay is  1.0079592 Right delay is 1.0931293 Net delay is -0.0851701
+Now iteration number 20 over at time
+Fri Aug  3 20:17:07 EDT 2012
+Left delay is  1.0046032 Right delay is 1.0909297 Net delay is -0.0863265
+Now iteration number 21 over at time
+Fri Aug  3 19:32:14 EDT 2012
+Left delay is  1.0107029 Right delay is 1.0956463 Net delay is -0.0849434
+Now iteration number 22 over at time
+Fri Aug  3 19:33:25 EDT 2012
+Left delay is  1.0077778 Right delay is 1.0939002 Net delay is -0.0861224
+Now iteration number 23 over at time
+Fri Aug  3 19:34:41 EDT 2012
+Left delay is  1.0093197 Right delay is 1.0953968 Net delay is -0.0860771
+Now iteration number 24 over at time
+Fri Aug  3 19:35:56 EDT 2012
+

@@ -1,0 +1,34 @@
+1. ITerations 1 through 24 are wrong, we might as well throw them away, because there was some crappy feedback from somewhere.
+   On second throught, it was probably not the feedback but the fact that the volume on the Mac wasn't up too high. 
+2. Iterations 25 onwards are good, because both the volume and the potential feedback from the other machine's other microphone (which somehow turned itself on) . 
+
+
+
+Setup :
+
+Hari's MAC connected to the GRIFFIN iMic 
+my laptop
+
+ both on the CSAIL ethernet. 
+
+Forced to use the GRIFFIN iMic on Hari's MAC cause the other thing didn't work. 
+
+
+Anyway, conclusively, after:
+
+1. Verifying that the period if 16/17 ms with Owen.
+2. Pulling AC in and out at home and in lab. 
+3. An older anecdote.
+
+I am convinced that there is a ton of AC static if you connect it to the mains. So ditch that first. 
+
+But even after that I need to remove some residual low amp 60 Hz signal. I am not yet sure how to do that. 
+
+
+Checked like 50 % of the robustness,txt file. Seems pretty robust.  Checked all of it. Does seem robust. 
+
+
+SUMMARY :
+
+Files 1 through 25 seem useless
+Files 25 through 50 seem useful and all of them have a latency of about 280 ms +/- 2 ms which is really stable. 
