@@ -12,8 +12,6 @@ class AwgnNoise {
       const double sample_rate ;
       const double duration;
       double*   sample_array;  
-      double*   pre_interpolation_array; 
-
 
       class Gaussian {
             private :
@@ -28,7 +26,9 @@ class AwgnNoise {
       const AwgnNoise::Gaussian* rng; 
          
     public : 
-       AwgnNoise(double t_amplitude, double t_bandwidth,double t_sample_rate,double t_duration) ;
+       AwgnNoise(double t_bandwidth,double t_duration,double t_sample_rate,double t_amplitude) ;
+       AwgnNoise(AwgnNoise o,double* sample_array);  // copy from elsewhere . 
        void interpolate(double* pre_interpolation_array,double* post_interpolation_array) ;
-       void to_file(std::string file_name) ;  
+       void to_file(std::string file_name) ; 
+       double* get_noise();  
 } ; 

@@ -1,4 +1,5 @@
 #include "tone.hh"
+#include<assert.h>
 Tone::Tone(double t_frequency, double t_duration,double t_sample_rate,double t_amplitude)  
      : frequency(t_frequency),
        duration(t_duration) ,
@@ -31,4 +32,15 @@ void Tone::to_file(std::string file_name) {
        tone_stream<<time<<"\t"<<sample_array[i]<<std::endl;  
      }
      tone_stream.close();
+}
+
+double* Tone::multiply(double* noise,unsigned long int length) {
+     unsigned long int num_samples=(unsigned long int)(duration * sample_rate) ;
+     assert(length == num_samples) ; /* No point multiplying two non-equal arrays */
+     double* shifted_noise =new double [num_samples];
+     unsigned long int i;
+     for(i=0;i<num_samples;i++)  {
+       shifted_noise[i]=noise[i]*sample_array[i]; /* point wise multiplication */ 
+     }
+     return shifted_noise; 
 }

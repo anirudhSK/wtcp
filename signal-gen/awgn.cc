@@ -1,15 +1,16 @@
 #include"awgn.hh"
 #include <fftw3.h>
-AwgnNoise::AwgnNoise(double t_amplitude,double t_bandwidth,double t_sample_rate,double t_duration)
+AwgnNoise::AwgnNoise(double t_bandwidth,double t_duration,double t_sample_rate,double t_amplitude)
         :amplitude(t_amplitude),
          bandwidth(t_bandwidth),
          sample_rate(t_sample_rate),
          duration(t_duration),
          sample_array(new double[(unsigned long int)(sample_rate*duration)]) ,
-         pre_interpolation_array(new double[(unsigned long int)(2*bandwidth*duration)])  ,
          rng(new AwgnNoise::Gaussian(0,amplitude)) {
 
-             
+         /* array before interpolation */  
+         double* pre_interpolation_array=new double[(unsigned long int)(2*bandwidth*duration)] ; 
+            
         /* Create a Gaussian Random number generator */  
         Gaussian rng_normal(0.0,amplitude); 
 
@@ -23,7 +24,6 @@ AwgnNoise::AwgnNoise(double t_amplitude,double t_bandwidth,double t_sample_rate,
         }
         /* now interpolate */
         interpolate(pre_interpolation_array,sample_array); 
-        
 }
 
 void AwgnNoise::to_file(std::string file_name) {
@@ -118,6 +118,20 @@ void AwgnNoise::interpolate(double* pre_interpolation_array,double* post_interpo
        fftw_free(input_signal);fftw_free(input_fft);fftw_free(interp_fft);fftw_free(interp_signal);
 }
 
+double* AwgnNoise::get_noise() {
+   /* return signal samples */
+   return sample_array ;
+}
+
+AwgnNoise::AwgnNoise(AwgnNoise o,double* t_sample_array) 
+     :amplitude(o.amplitude),
+      bandwidth(o.bandwidth),
+      sample_rate(o.sample_rate),
+      duration(o.duration),
+      sample_array(t_sample_array),
+      rng(new AwgnNoise::Gaussian(0,amplitude)) {
+
+}
 double AwgnNoise::Gaussian::sample() {
       double u1=(double)rand()/RAND_MAX; 
       double u2=(double)rand()/RAND_MAX;
@@ -137,3 +151,5 @@ AwgnNoise::Gaussian::Gaussian(double t_mean, double t_dev)
      PI(atan(1)*4) {
    srand(0);
 }
+
+ 
