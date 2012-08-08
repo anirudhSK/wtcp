@@ -29,7 +29,6 @@ class AwgnNoise {
          
     public : 
        AwgnNoise(double t_amplitude, double t_bandwidth,double t_sample_rate,double t_duration) ;
-       void interpolate(); 
+       void interpolate(double* pre_interpolation_array,double* post_interpolation_array) ;
        void to_file(std::string file_name) ;  
-
 } ; 
