@@ -6,10 +6,11 @@
 #include <errno.h>            // errno, perror()
 #include <stdio.h>           // close()
 #include <string.h>          // strcpy, memset(), and memcpy()
-
+#include <net/if.h>          // struct ifreq
+#include <sys/ioctl.h>       // for SIOCGIFINDEX
 int main() {
   /* variable decl */
-  int packet_socket,recv_bytes;
+  int packet_socket,recv_bytes,rc;
 
   /* Allocate memory for the buffers */
   unsigned char* ether_frame = (unsigned char *) malloc (IP_MAXPACKET);
@@ -27,6 +28,29 @@ int main() {
     exit (EXIT_FAILURE);
   }
 
+  /* Bind to eth1 interface, code that works and doesn't get random packets from other interfaces */
+  struct sockaddr_ll sll;
+  struct ifreq ifr;
+  bzero(&sll, sizeof(sll));
+  bzero(&ifr, sizeof(ifr));
+  /* First Get the Interface Index */
+  strncpy((char *)ifr.ifr_name, "eth1", IFNAMSIZ);
+  if((ioctl(packet_socket, SIOCGIFINDEX, &ifr)) == -1) {
+   perror("Error getting Interface index !\n");
+   exit(-1);
+  }
+  else {
+   printf("Succesffully bound to eth1 \n");
+  }
+  /* Bind our raw socket to this interface */
+  sll.sll_family = AF_PACKET;
+  sll.sll_ifindex = ifr.ifr_ifindex;
+  sll.sll_protocol = htons(ETH_P_ALL);
+
+  if((bind(packet_socket, (struct sockaddr *)&sll, sizeof(sll)))== -1) {
+    perror("Error binding raw socket to interface\n");
+    exit(-1);
+  }
   /* receive in a tight loop, use MSG_TRUNC to get actual msg length */
   while(1) {
     if ((recv_bytes = recv (packet_socket, ether_frame, IP_MAXPACKET, MSG_TRUNC)) < 0) {
