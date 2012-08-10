@@ -1,0 +1,42 @@
+August 9th 2012 : 
+
+Implementation of traffic shaping for our very own simulator box. Right now the code is all set up but sending packets does't seem to work.
+The program claims they have been sent, but tcpdump does not see them. This is because for a non-tap device to be activated it needs to be connected to a cable so that the indicator led turns on. 
+
+
+Even simply pinging on eth1 doesn't seem to be logged at tcpdump. Maybe it takes a while.  Yes, it does take a while. 
+Why is there so much buffering in tcpdump's IO to screen ? Use -l and -U to prevetn buffering as much as possible.
+Now, basically eth0 gets all the arp packets but eth1 doesn't.
+So eth1 doesn't transmit any packets unless there is a link at the other end. Smart of it :)
+
+Anyway, so that's one thing taken care of.   
+
+So, when I loop back my own eth1 into eth2 things seem to work. The trick is making the green lights glow on the Eth adaptor. send works ok, there is no need to use sendto
+Ok, on first glance things seem to work ok. There is nothing random being added by the NIC, and raw packets work exactly as they should. The .dump files indicate that. 
+
+Also observed this effect documented here : http://www.winpcap.org/pipermail/winpcap-users/2007-October/002142.html
+
+Anyway, now I ll try and get actual pcap files to validate this whole thing.
+
+Got the pcap files
+
+eth0.pcap : eth0 is the interface that is pinging Google.com. This is going to be the callee behind the simulator box ie the input interface of the simulator box. 
+eth1.pcap : eth1 is the output interface on the simulator box.
+eth2.pcap : Is the outside world. 
+
+So eth2.pcap should look exactly like eth0.pcap for transparent forwarding. 
+
+I checked this: It looks like the pcap files match exactly. So we are probably in good hands. 
+
+Next steps :
+
+1. Check on the checksum recalculation that Keith talked about. 
+2. What is avahi ?
+3. A raw socket both receives packets that the host generated on that interface and that someone else generated on that interface. Seems to be a little confusing that way since it seems to repeat both ICMP requests and replies with all the source address and everything. 
+4. Test this out end to end with a callee that can ping an IP address on the same subnet, outside subnet and google through our middle man. Hopefully this stuff works out. 
+5. Putting the ethernet card in promiscuous mode. Hope that helps.
+
+Documentation :
+
+dump has the dump files from the eth0->eth1->eth2 experiment. 
+pcap has the pcap files from the same experiment.  

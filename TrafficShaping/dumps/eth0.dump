@@ -1,0 +1,25 @@
+Original packet source being sniffed 
+19:28:31.996270 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto ICMP (1), length 84)
+    traffic-shaper > ve-in-f106.1e100.net: ICMP echo request, id 13487, seq 1, length 64
+19:28:32.035961 IP (tos 0x0, ttl 41, id 588, offset 0, flags [none], proto ICMP (1), length 84)
+    ve-in-f106.1e100.net > traffic-shaper: ICMP echo reply, id 13487, seq 1, length 64
+19:28:32.996530 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto ICMP (1), length 84)
+    traffic-shaper > ve-in-f106.1e100.net: ICMP echo request, id 13487, seq 2, length 64
+19:28:33.036185 IP (tos 0x0, ttl 41, id 589, offset 0, flags [none], proto ICMP (1), length 84)
+    ve-in-f106.1e100.net > traffic-shaper: ICMP echo reply, id 13487, seq 2, length 64
+19:28:33.996727 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto ICMP (1), length 84)
+    traffic-shaper > ve-in-f106.1e100.net: ICMP echo request, id 13487, seq 3, length 64
+19:28:34.037054 IP (tos 0x0, ttl 41, id 590, offset 0, flags [none], proto ICMP (1), length 84)
+    ve-in-f106.1e100.net > traffic-shaper: ICMP echo reply, id 13487, seq 3, length 64
+19:28:34.997567 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto ICMP (1), length 84)
+    traffic-shaper > ve-in-f106.1e100.net: ICMP echo request, id 13487, seq 4, length 64
+19:28:35.037211 IP (tos 0x0, ttl 41, id 591, offset 0, flags [none], proto ICMP (1), length 84)
+    ve-in-f106.1e100.net > traffic-shaper: ICMP echo reply, id 13487, seq 4, length 64
+19:28:35.997707 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto ICMP (1), length 84)
+    traffic-shaper > ve-in-f106.1e100.net: ICMP echo request, id 13487, seq 5, length 64
+19:28:36.037375 IP (tos 0x0, ttl 41, id 592, offset 0, flags [none], proto ICMP (1), length 84)
+    ve-in-f106.1e100.net > traffic-shaper: ICMP echo reply, id 13487, seq 5, length 64
+19:28:36.997906 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto ICMP (1), length 84)
+    traffic-shaper > ve-in-f106.1e100.net: ICMP echo request, id 13487, seq 6, length 64
+19:28:37.037592 IP (tos 0x0, ttl 41, id 593, offset 0, flags [none], proto ICMP (1), length 84)
+    ve-in-f106.1e100.net > traffic-shaper: ICMP echo reply, id 13487, seq 6, length 64
