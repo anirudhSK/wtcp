@@ -40,3 +40,90 @@ Documentation :
 
 dump has the dump files from the eth0->eth1->eth2 experiment. 
 pcap has the pcap files from the same experiment.  
+
+August 10th :
+
+1. Connected Shuo's Lenovo thinkpad into my simulator box to forward packets. So far it's looking ok. We ll see if it holds up or a switch along the way gets annoyed about it. I need to write a packet sniffer for the other end as well ie back the other way around. 
+
+2. Lastly, I think the forwarding interface should be in promsicuous mode for the switch to send it random packets which do not match it's ethernet interface.
+
+Here's a packet trace :
+
+    Arrival Time: Aug 10, 2012 10:07:08.266332000
+    [Time delta from previous captured frame: 1.000219000 seconds]
+    [Time delta from previous displayed frame: 1.000219000 seconds]
+    [Time since reference or first frame: 4.000874000 seconds]
+    Frame Number: 5
+    Frame Length: 60 bytes
+    Capture Length: 60 bytes
+    [Frame is marked: False]
+    [Protocols in frame: eth:arp]
+Ethernet II, Src: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22), Dst: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+    Destination: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+        Address: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+        .... ...1 .... .... .... .... = IG bit: Group address (multicast/broadcast)
+        .... ..1. .... .... .... .... = LG bit: Locally administered address (this is NOT the factory default)
+    Source: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22)
+        Address: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+    Type: ARP (0x0806)
+    Trailer: 000000000000000000000000000000000000
+Address Resolution Protocol (request)
+    Hardware type: Ethernet (0x0001)
+    Protocol type: IP (0x0800)
+    Hardware size: 6
+    Protocol size: 4
+    Opcode: request (0x0001)
+    [Is gratuitous: False]
+    Sender MAC address: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22)
+    Sender IP address: 128.30.87.180 (128.30.87.180)
+    Target MAC address: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+    Target IP address: 128.30.87.123 (128.30.87.123)
+
+
+ 
+Frame 2 (60 bytes on wire, 60 bytes captured)
+    Arrival Time: Aug 10, 2012 10:07:08.266397000
+    [Time delta from previous captured frame: 1.000233000 seconds]
+    [Time delta from previous displayed frame: 1.000233000 seconds]
+    [Time since reference or first frame: 1.000233000 seconds]
+    Frame Number: 2
+    Frame Length: 60 bytes
+    Capture Length: 60 bytes
+    [Frame is marked: False]
+    [Protocols in frame: eth:arp]
+Ethernet II, Src: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22), Dst: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+    Destination: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+        Address: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+        .... ...1 .... .... .... .... = IG bit: Group address (multicast/broadcast)
+        .... ..1. .... .... .... .... = LG bit: Locally administered address (this is NOT the factory default)
+    Source: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22)
+        Address: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22)
+        .... ...0 .... .... .... .... = IG bit: Individual address (unicast)
+        .... ..0. .... .... .... .... = LG bit: Globally unique address (factory default)
+    Type: ARP (0x0806)
+    Trailer: 000000000000000000000000000000000000
+Address Resolution Protocol (request)
+    Hardware type: Ethernet (0x0001)
+    Protocol type: IP (0x0800)
+    Hardware size: 6
+    Protocol size: 4
+    Opcode: request (0x0001)
+    [Is gratuitous: False]
+    Sender MAC address: HonHaiPr_1c:a6:22 (00:22:68:1c:a6:22)
+    Sender IP address: 128.30.87.180 (128.30.87.180)
+    Target MAC address: ff:22:ff:1c:00:22 (ff:22:ff:1c:00:22)
+    Target IP address: 128.30.87.123 (128.30.87.123)
+
+
+---
+
+Tried pinging 128.30.87.1 and it seems to work out ok. Of course, there is some sort of a broadcast storm but I guess I can fix that. 
+
+Figured out why this is happening .
+
+The packet-sniffer is configured to do ETH_P_ALL which means it will receive EVERY single packet on the interface. Now, this is independent of whether it was received from outside or generated from inside. They are just packets that show up at a point with no directionaility. 
+
+So eth0 (the ingress) receives a packet and sends it to eth1. eth1 gets this and says, oh I see a packet and it forwards it back to eth0. Similarly the other way around. It soon leads to an amazing flood of packets. 
+So, the idea is eth0 forwards any packet with a source MAC address equal to the callee's address into eth1. eth1 forwards a packet into eth0 only if the destination address is either broadcast or the spoofer MAC. From eth0 to eth1 it's the other way around.  
