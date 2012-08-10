@@ -36,7 +36,19 @@ void bind_to_if(int socket,char* if_name) {
   }
 }
 
-int main() {
+int main(int argc,char** argv) {
+  /* command line handling */
+  char ingress[10];
+  char egress[10];
+  if(argc < 3)  {
+     printf("Usage: packet-forwarder ingress-interface egress-interface \n");
+     exit(EXIT_FAILURE);
+  }
+  else {
+     strcpy(ingress,argv[1]);
+     strcpy(egress,argv[2]);
+  }
+    
   /* variable decl */
   int recv_socket,send_socket,recv_bytes,sent_bytes,rc;
 
@@ -57,7 +69,7 @@ int main() {
   }
 
   /* bind to interface eth0 */
-  bind_to_if(recv_socket,"eth0"); 
+  bind_to_if(recv_socket,ingress); 
 
   /* Create another packet socket to send packets to. In some sense we are a dumb software repeater */
   if ((send_socket = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
@@ -66,7 +78,7 @@ int main() {
   }
 
   /* bind to interface eth1 */
-  bind_to_if(send_socket,"eth1"); 
+  bind_to_if(send_socket,egress); 
 
   /* receive in a tight loop, use MSG_TRUNC to get actual msg length */
   while(1) {
