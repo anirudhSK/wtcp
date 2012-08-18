@@ -35,3 +35,4 @@ while [ $i -lt $num_pulses ] ; do
     i=`expr $i '+' 1`
 done
 sox combined-file.dat combined-file.wav
+rm *.dat # clean up all the other files. 
