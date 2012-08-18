@@ -20,6 +20,18 @@ while [ $i -lt $num_pulses ] ; do
     # generate silence 
     ./tone-gen -c $freq -b 20 -d $silence_time -a 0
     mv noiseShifted.dat $freq-silence.dat
-    i=`expr $i '+' 1`
+    sox --combine concatenate $freq.dat $freq-silence.dat $freq-combined.dat
     echo "Finished generating sound and silence for $freq Hz"
+    i=`expr $i '+' 1`
 done
+cp $start_freq-combined.dat combined-file.dat
+i=1
+while [ $i -lt $num_pulses ] ; do 
+    freq_delta=`expr $i '*' 100`
+    freq=`expr $start_freq '+' $freq_delta`
+    sox --combine concatenate combined-file.dat $freq-combined.dat temp.dat
+    mv temp.dat combined-file.dat
+    echo "Combining  sound and silence for $freq Hz"
+    i=`expr $i '+' 1`
+done
+sox combined-file.dat combined-file.wav
