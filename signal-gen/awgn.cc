@@ -30,7 +30,7 @@ void AwgnNoise::to_file(std::string file_name) {
      ofstream noise_stream(file_name.c_str()); 
      double time;
      unsigned int i =0; 
-     unsigned long int num_samples=(unsigned long int)(duration * sample_rate) ;
+     unsigned long int num_samples=round(duration * sample_rate) ;
      /* header information */ 
      noise_stream<<"; Sample Rate "<<sample_rate<<std::endl;
      noise_stream<<"; Channels 1"<<std::endl;
@@ -45,8 +45,8 @@ void AwgnNoise::interpolate(double* pre_interpolation_array,double* post_interpo
 
        /* input pre_interpolation_array , output sample_array */ 
 
-       unsigned long int pre_interp_sample_count =(2*bandwidth*duration);
-       unsigned long int post_interp_sample_count=sample_rate*duration;
+       unsigned long int pre_interp_sample_count =round(2*bandwidth*duration);
+       unsigned long int post_interp_sample_count=round(sample_rate*duration);
        unsigned long int i=0; 
 
        /* Interpolate to higher sampling rate */ 

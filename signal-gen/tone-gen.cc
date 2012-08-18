@@ -8,9 +8,9 @@ using namespace std;
 const float SAMPLE_RATE=44100;
 int main(int argc,char ** argv) {
 
-   int center_freq = 0;
-   int bandwidth   = 0;
-   float duration  = 0; 
+   int center_freq = 0 ;
+   int bandwidth   = 0 ;
+   float duration  = 0 ; 
    float amplitude = 0 ; 
 
    static struct option long_options[] = {
@@ -51,7 +51,7 @@ int main(int argc,char ** argv) {
    }
 
    /* Print usage  */
-   if (center_freq==0 || bandwidth == 0 || duration == 0 || amplitude == 0) {
+   if (center_freq <= 0 || bandwidth <= 0 || duration <= 0 || amplitude < 0) { /* amplitude 0 is allowed to gen. silence */
          printf("Invalid or incomplete arguments\nUsage : ./tonegen --center_freq F --bandwidth B --duration D --amplitude A \n");
          exit(1);
    }
@@ -79,7 +79,6 @@ int main(int argc,char ** argv) {
    /* amplitude of 0.9  */
    
    AwgnNoise white_noise2(bandwidth,duration,SAMPLE_RATE,amplitude); 
-   white_noise2.to_file("noise.dat");
 
    /* Test case 4: Shift noise to elsewhere on the spectrum */ 
  
