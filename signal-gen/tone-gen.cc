@@ -51,7 +51,7 @@ int main(int argc,char ** argv) {
    }
 
    /* Print usage  */
-   if (center_freq <= 0 || bandwidth <= 0 || duration <= 0 || amplitude < 0) { /* amplitude 0 is allowed to gen. silence */
+   if (center_freq <= 0 || bandwidth < 0 || duration <= 0 || amplitude < 0) { /* amplitude 0 is allowed to gen. silence, bandwidth can be 0 to generate no noise at all  */
          printf("Invalid or incomplete arguments\nUsage : ./tonegen --center_freq F --bandwidth B --duration D --amplitude A \n");
          exit(1);
    }
@@ -77,20 +77,25 @@ int main(int argc,char ** argv) {
    /* Duration of 0.3 second */ 
    /* Sample_rate of 44.1KHZ */
    /* amplitude of 0.9  */
-   
-   AwgnNoise white_noise2(bandwidth,duration,SAMPLE_RATE,amplitude); 
 
-   /* Test case 4: Shift noise to elsewhere on the spectrum */ 
- 
-   /* get noise samples generated earlier */ 
-   double* noise=white_noise2.get_noise();  
-    
-   /* multiply them with tone to 'shift' them */
-   double *shifted_samples=test_tone.multiply(noise,(long int)SAMPLE_RATE*(duration)); 
-
-   /* create a new AwgnNoise wrapper */
-   AwgnNoise shifted_noise(white_noise2,shifted_samples);
+   if(bandwidth!=0) {   
+     AwgnNoise white_noise2(bandwidth,duration,SAMPLE_RATE,amplitude); 
+  
+     /* Test case 4: Shift noise to elsewhere on the spectrum */ 
    
-   /* dump new samples */ 
-   shifted_noise.to_file("noiseShifted.dat");
+     /* get noise samples generated earlier */ 
+     double* noise=white_noise2.get_noise();  
+      
+     /* multiply them with tone to 'shift' them */
+     double *shifted_samples=test_tone.multiply(noise,(long int)SAMPLE_RATE*(duration)); 
+  
+     /* create a new AwgnNoise wrapper */
+     AwgnNoise shifted_noise(white_noise2,shifted_samples);
+   
+     /* dump new samples */ 
+     shifted_noise.to_file("noiseShifted.dat");
+   }
+   else {
+     test_tone.to_file("noiseShifted.dat"); 
+   }
 }
