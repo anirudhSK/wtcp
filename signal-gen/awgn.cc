@@ -1,24 +1,28 @@
 #include"awgn.hh"
 #include <fftw3.h>
 AwgnNoise::AwgnNoise(double t_bandwidth,double t_duration,double t_sample_rate,double t_amplitude)
-        :amplitude(t_amplitude),
-         bandwidth(t_bandwidth),
-         sample_rate(t_sample_rate),
-         duration(t_duration),
-         sample_array(new double[(unsigned long int)(sample_rate*duration)]) ,
-         rng(new AwgnNoise::Gaussian(0,amplitude)) {
+       :amplitude(t_amplitude),
+        bandwidth(t_bandwidth),
+        sample_rate(t_sample_rate),
+        duration(t_duration),
+        sample_array(new double[(unsigned long int)(round(sample_rate*duration))]) ,
+        rng(new AwgnNoise::Gaussian(0,amplitude)) {
 
-         /* array before interpolation */  
-         double* pre_interpolation_array=new double[(unsigned long int)(2*bandwidth*duration)] ; 
-            
+        /* array before interpolation */  
+        unsigned long int pre_interp_sample_count =round(2*bandwidth*duration);
+        if(pre_interp_sample_count%2 != 0) pre_interp_sample_count++; /* Needs to be even for things to work out ok */ 
+        /* just ensure it is divisable by 2 */
+        assert(pre_interp_sample_count % 2 == 0);          
+
+        double* pre_interpolation_array=new double[pre_interp_sample_count] ; 
+           
         /* Create a Gaussian Random number generator */  
         Gaussian rng_normal(0.0,amplitude); 
 
         /* generate AWGN noise bandlimited to 'bandwidth' around origin */ 
         /* Need to generate for 'duration' seconds */
         unsigned long int i=0; 
-        unsigned long int pre_interp_sample_count =(2*bandwidth*duration);
-
+        
         for(i=0; i< pre_interp_sample_count; i++)  {
              pre_interpolation_array[i]=rng_normal.sample();   /* white noise samples */  
         }
@@ -46,6 +50,10 @@ void AwgnNoise::interpolate(double* pre_interpolation_array,double* post_interpo
        /* input pre_interpolation_array , output sample_array */ 
 
        unsigned long int pre_interp_sample_count =round(2*bandwidth*duration);
+       if(pre_interp_sample_count%2 != 0) pre_interp_sample_count++; /* Needs to be even for things to work out ok */ 
+       /* just ensure it is divisable by 2 */
+       assert(pre_interp_sample_count % 2 == 0);          
+
        unsigned long int post_interp_sample_count=round(sample_rate*duration);
        unsigned long int i=0; 
 
@@ -75,9 +83,6 @@ void AwgnNoise::interpolate(double* pre_interpolation_array,double* post_interpo
 
        /* plan for new ifft */
        p = fftw_plan_dft_1d(post_interp_sample_count, interp_fft, interp_signal, FFTW_BACKWARD, FFTW_ESTIMATE);
-
-       /* just ensure it is divisable by 2 */
-       assert(pre_interp_sample_count % 2 == 0);          
 
        /* init. arrays to all 0*/
        for(i=0; i< post_interp_sample_count; i++)  {
