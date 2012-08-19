@@ -10,9 +10,6 @@
 #include <sys/ioctl.h>       // for SIOCGIFINDEX
 #include <assert.h>
 #include <poll.h>            // poll.h
-//char client_mac[6]={0x00,0x22,0x68,0x1c,0xa6,0x22}; // my Thinkpad
-char client_mac[6]={0x54,0x42,0x49,0x07,0xf3,0x39}; // my laptop
-//char client_mac[6]={0x44,0x37,0xe6,0xa4,0x2c,0x71}; // Skype-Beta
 char bcast[6]={0xff,0xff,0xff,0xff,0xff,0xff};
 
 int check_mac_addr(char m1[6],char m2[6]) {
@@ -66,13 +63,15 @@ int main(int argc,char** argv) {
   /* command line handling */
   char ingress[10];
   char egress[10];
-  if(argc < 3)  {
-     printf("Usage: packet-forwarder ingress-interface egress-interface \n");
+  char client_mac[6]; /* read from command line */
+  if(argc < 4)  {
+     printf("Usage: packet-forwarder ingress-interface egress-interface client-mac \n");
      exit(EXIT_FAILURE);
   }
   else {
      strcpy(ingress,argv[1]);
      strcpy(egress,argv[2]);
+     sscanf(argv[3], "%x:%x:%x:%x:%x:%x", &client_mac[0], &client_mac[1], &client_mac[2], &client_mac[3], &client_mac[4], &client_mac[5]);
   }
     
   /* variable decl */
