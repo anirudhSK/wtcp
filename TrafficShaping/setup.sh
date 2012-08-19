@@ -10,6 +10,8 @@ egress=$2
 
 # put both interfaces in promisc mode. 
 # Otherwise, the ping requests and responses won't come back correctly. 
+set -v
+set -x
 sudo ifconfig $ingress up promisc
 sudo ifconfig $egress up promisc
 
@@ -18,7 +20,7 @@ sudo ifconfig $egress up promisc
 # Disable segmentation offloading to NIC. 
 
 sudo ethtool --offload  $ingress gso off  tso off gro off  # lro off ufo off   # apparently lro and ufo are not on the cards. 
-sudo ethtool --offload  $ingress gso off  tso off gro off  # lro off ufo off
+sudo ethtool --offload  $egress gso off  tso off gro off  # lro off ufo off
 
 # now start the pkt forwarding 
 
