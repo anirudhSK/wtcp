@@ -10,7 +10,9 @@
 #include <sys/ioctl.h>       // for SIOCGIFINDEX
 #include <assert.h>
 #include <poll.h>            // poll.h
-char client_mac[6]={0x00,0x22,0x68,0x1c,0xa6,0x22};
+//char client_mac[6]={0x00,0x22,0x68,0x1c,0xa6,0x22}; // my Thinkpad
+char client_mac[6]={0x54,0x42,0x49,0x07,0xf3,0x39}; // my laptop
+//char client_mac[6]={0x44,0x37,0xe6,0xa4,0x2c,0x71}; // Skype-Beta
 char bcast[6]={0xff,0xff,0xff,0xff,0xff,0xff};
 
 int check_mac_addr(char m1[6],char m2[6]) {
@@ -115,15 +117,18 @@ int main(int argc,char** argv) {
   while(1) {
     /* poll both ingress and egress sockets */ 
     ppoll( poll_fds, 2, NULL, NULL ); 
-   
+    
     /* from ingress socket to egress */  
     if ( poll_fds[ 0 ].revents & POLLIN ) {
       recv_bytes = recv_packet(ingress_socket, ether_frame) ; 
       /* parse src mac */
       char* src_mac=(char*)(ether_frame +6); 
       if (  check_mac_addr(src_mac,client_mac) )   {
+#ifdef DEBUG
+             printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
+#endif
              if ((sent_bytes = send(egress_socket,ether_frame,recv_bytes,MSG_TRUNC))<0) {
-               perror("send() failed:");
+               perror("send() on egress failed:");
                exit(EXIT_FAILURE);
              }
       }
@@ -135,8 +140,12 @@ int main(int argc,char** argv) {
       /* parse dst mac */
       char* dst_mac=(char*)(ether_frame);
       if ( check_mac_addr(dst_mac,client_mac) || check_mac_addr(dst_mac,bcast) )   {
+#ifdef DEBUG
+          if      (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
+          else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
+#endif
           if ((sent_bytes = send(ingress_socket,ether_frame,recv_bytes,MSG_TRUNC))<0) {
-            perror("send() failed:");
+            perror("send() on ingress failed:");
             exit(EXIT_FAILURE);
           }
       }

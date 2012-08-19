@@ -127,3 +127,12 @@ The packet-sniffer is configured to do ETH_P_ALL which means it will receive EVE
 
 So eth0 (the ingress) receives a packet and sends it to eth1. eth1 gets this and says, oh I see a packet and it forwards it back to eth0. Similarly the other way around. It soon leads to an amazing flood of packets. 
 So, the idea is eth0 forwards any packet with a source MAC address equal to the callee's address into eth1. eth1 forwards a packet into eth0 only if the destination address is either broadcast or the spoofer MAC. From eth0 to eth1 it's the other way around.  
+
+---------
+
+August 18th, 
+
+Tests to speedtest.net seem to return more or less the same result with and without the interceptor . 
+I managed to fix the message size too long issues. It was because of Large Segment Offload and it's cousins. 
+ping doesn't work till you put both ingress and egress in promiscuous mode. 
+
