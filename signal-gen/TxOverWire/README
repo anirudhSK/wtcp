@@ -1,0 +1,18 @@
+The next experiment after testing simple loopback retrieval. 
+
+In the first experiment (August 17th), I was trying to see if I could pick out the individual components from the tx signal itself.
+In the next one (August 18th), I actually transmit the signal over the wire into a recorder on another machine, and then see if I can pick out the components. 
+
+This seems to work, although I need to do some work to slice the signal, and actually detect the peak. 
+
+sig-proc.results has all the detected timings for each of the 10 pulses. 
+
+Things seem to work with the following algorithm :
+
+1. Tune using I-Q demodulation.
+2. Do K-means clustering with K=10
+3. pick mean of min and max as threshold.
+4. Slice on the threshold.
+5. Pick the first 1 as the starting point of the signal. 
+
+So far, the tones used for the experiment are pure tones with no Gaussian noise added to them. The algorithm doesn't work as great with band limited Gaussian noise which I am going to address next. 
