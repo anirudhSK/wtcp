@@ -2,6 +2,7 @@
 #include <sys/time.h>
 #include<assert.h>
 #include<sys/socket.h>
+#include<iostream>
 Link::Link(double rate,int fd)
  : pkt_queue(),
    pkt_queue_occupancy(0),
@@ -43,19 +44,23 @@ void Link::tick() {
    /* compare against last_token_update */
    uint64_t elapsed = ts_now - last_token_update ;
    /* get new count */
-   uint32_t new_token_count=token_count+elapsed*link_rate*1.e-9; 
+   long double new_token_count=token_count+elapsed*link_rate*1.e-9; 
    update_token_count(ts_now,new_token_count);
    /* Can I send pkts right away ? */ 
    if(!pkt_queue.empty()) { 
      Payload head=pkt_queue.front();
-     while(token_count>=head.size || !pkt_queue.empty() ) { 
-        ts_now=Link::timestamp();     
+     while(token_count>=head.size && head.size > 0) {
+        ts_now=Link::timestamp();  
+#ifdef DEBUG
+        std::cout<<"Sending packet of "<<head.size<<" from  while loop \n";
+#endif
         send_pkt(head);
-        pkt_queue.pop(); /* remove the head */ 
+        dequeue();
         elapsed = ts_now - last_token_update ;
-        new_token_count=token_count-head.size+elapsed*link_rate; 
+        new_token_count=token_count-head.size+elapsed*link_rate*1.e-9; 
         update_token_count(ts_now,new_token_count);
-        head=pkt_queue.front();
+        if(pkt_queue.empty()) head.size=-1;
+        else  head=pkt_queue.front();
      }
      /* if there are packets wait till tokens accumulate in the future */ 
      if(!pkt_queue.empty())  {
@@ -67,7 +72,7 @@ void Link::tick() {
    else next_transmission = -1 ;
 }
 
-void Link::update_token_count(uint64_t current_ts,uint32_t new_count) {
+void Link::update_token_count(uint64_t current_ts,long double new_count) {
       /* maintain invariant */ 
       last_token_update=current_ts; 
       token_count=(new_count > BURST_SIZE) ? BURST_SIZE : new_count;
