@@ -71,8 +71,8 @@ def quad_demod(stream,centre_freq,bandwidth,sample_rate) :
       centroids=cluster.vq.kmeans(numpy.array(abs_stream),10)[0];
       slice_threshold=(min(centroids)+max(centroids))/2;
       
-      print "centroids are ",centroids
-      print "Slice threshold is",slice_threshold
+#      print "centroids are ",centroids
+#      print "Slice threshold is",slice_threshold
       # slice the signal 
       slice_stream=numpy.array([0]*len(abs_stream)); 
       for i in range(0,len(slice_stream)): 
@@ -80,8 +80,8 @@ def quad_demod(stream,centre_freq,bandwidth,sample_rate) :
 
       # find start of pulse 
       start_index=numpy.nonzero(slice_stream)[0][0]
-      print "Pulse starts at index ",start_index," and time ",timeSeries[start_index]
-      
+#      print "Pulse starts at index ",start_index," and time ",timeSeries[start_index]
+      print timeSeries[start_index]
       # plot slice_stream 
       p.figure(1)
       subplot(211)
@@ -106,6 +106,6 @@ sample_rate=float(sys.argv[4]);
 channel=int(sys.argv[5]);
 stream=read_from_file(fh,channel) ;
 tuned_stream=quad_demod(stream,freq+bandwidth/2,bandwidth,sample_rate);
-for i in range(0,len(timeSeries)): 
-     print timeSeries[i],"\t",tuned_stream[i]
- 
+#for i in range(0,len(timeSeries)): 
+#     print timeSeries[i],"\t",tuned_stream[i]
+# 

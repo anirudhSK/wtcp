@@ -16,11 +16,10 @@ sox $recv_file recv.dat
 while [ $i -lt $num_pulses ] ; do 
     freq_delta=`expr $i '*' 100`
     start_freq=`expr $first_freq '+' $freq_delta`
-    set -v 
-    set -x
-    python recv-pulse.py recv.dat $start_freq $noise_bw $sample_rate > $start_freq-recv.dat
-    set +v
-    set +x
+    pulse1=$(python recv-pulse.py recv.dat $start_freq $noise_bw $sample_rate 1)
+    pulse2=$(python recv-pulse.py recv.dat $start_freq $noise_bw $sample_rate 2)
+    diff=$(echo "scale=5 ; $pulse2 - $pulse1" | bc)
+    echo "Latency is $diff"
     echo "Finished tuning into pulse spanning $noise_bw starting at $start_freq Hz"
     i=`expr $i '+' 1`
 done

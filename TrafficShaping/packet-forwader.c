@@ -46,7 +46,7 @@ void bind_to_if(int socket,char* if_name) {
    exit(-1);
   }
   else {
-   printf("Succesffully bound to %s \n",if_name);
+   printf("Successfully bound to %s \n",if_name);
   }
   /* Bind our raw socket to this interface */
   sll.sll_family = AF_PACKET;
