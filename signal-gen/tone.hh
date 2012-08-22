@@ -17,6 +17,7 @@ class Tone {
   public : 
  
    Tone(double t_frequency, double t_duration,double t_sample_rate,double t_amplitude); 
-   void to_file(std::string file_name) ;  
+   double to_file(std::string file_name) ;  
+   double append_to_file(double t_start_time,std::string file_name) ;  
    double* multiply(double* noise,unsigned long int length); /* multiply with AWGn to "move" noise */
 } ; 
