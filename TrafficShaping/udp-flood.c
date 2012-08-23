@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+struct senderdata {
+  int datagram_count;
+  int queue_len;
+  int secs;
+  int us;
+  int padding;
+};
+
+int main( int argc, char *argv[] )
+{
+  int port = 9999;
+
+  /* create socket */
+  int sock = socket( AF_INET, SOCK_DGRAM, 0 );
+  if ( sock < 0 ) {
+    perror( "socket" );
+    exit( 1 );
+  }
+
+  /* bond socket to port */
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons( port );
+  addr.sin_addr.s_addr = INADDR_ANY;
+
+  if ( bind( sock, (struct sockaddr *)&addr, sizeof( addr ) ) < 0 ) {
+    perror( "bind" );
+    exit( 1 );
+  }
+
+  /* random address to flood to */ 
+  addr.sin_family=AF_INET;
+  addr.sin_port=htons(9999);
+  if ( !inet_aton("220.181.111.147", &addr.sin_addr ) ) {
+    exit( 1 );
+  }
+
+  struct senderdata data;
+  data.datagram_count = 10;
+  data.queue_len = 10;
+  data.secs = 5;
+  data.us = 10;
+
+  while ( 1 ) {
+    /* send datagrams to target */
+        if ( (sendto( sock, &data, sizeof( data ),
+		 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in) )) < 0 ) {
+      perror( "sendto" );
+      exit( 1 );
+    }
+  }
+  return 0;
+}

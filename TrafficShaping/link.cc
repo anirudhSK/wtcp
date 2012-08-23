@@ -10,9 +10,11 @@ Link::Link(double rate,int fd)
    next_transmission(-1),
    last_token_update(Link::timestamp()),
    token_count(0),
-   BUFFER_SIZE_BYTES(1000000),
+   BUFFER_SIZE_BYTES(1000000000),
    BURST_SIZE(1500), /* 1 packet */
    link_socket(fd),
+   total_bytes(0),
+   begin_time(Link::timestamp()),
    link_rate(rate) {
 
 }
@@ -40,6 +42,7 @@ int Link::recv(uint8_t* ether_frame,uint16_t size) {
 }
 
 void Link::tick() {
+   static uint64_t last_update=0; 
    uint64_t ts_now=Link::timestamp(); 
    /* compare against last_token_update */
    uint64_t elapsed = ts_now - last_token_update ;
@@ -51,11 +54,14 @@ void Link::tick() {
      Payload head=pkt_queue.front();
      while(token_count>=head.size && head.size > 0) {
         ts_now=Link::timestamp();  
-#ifdef DEBUG
-        std::cout<<"Sending packet of "<<head.size<<" from  while loop \n";
-#endif
         send_pkt(head);
         dequeue();
+#ifdef DEBUG
+        if(ts_now>last_update+1e9)  {/* 1 second ago */
+          std::cout<<"Sending packet, size "<<head.size<<" , at time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<total_bytes<<" bytes transferred so far "<<" @ "<<float(total_bytes*1e9)/(ts_now-begin_time)<<" bytes per sec \n";
+          last_update=ts_now;
+        }
+#endif
         elapsed = ts_now - last_token_update ;
         new_token_count=token_count-head.size+elapsed*link_rate*1.e-9; 
         update_token_count(ts_now,new_token_count);
@@ -84,6 +90,7 @@ void Link::send_pkt(Payload p)  {
                perror("send() on egress failed:");
                exit(EXIT_FAILURE);
    }
+   total_bytes=total_bytes+sent_bytes;
 }
 
 int Link::wait_time_ns( void ) const

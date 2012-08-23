@@ -67,8 +67,10 @@ int main(int argc,char** argv) {
   char ingress[10];
   char egress[10];
   uint8_t client_mac[6]; /* read from command line */
-  if(argc < 4)  {
-     printf("Usage: packet-forwarder ingress-interface egress-interface client-mac \n");
+  float uplink_rate ; 
+  float downlink_rate;
+  if(argc < 6)  {
+     printf("Usage: packet-forwarder ingress-interface egress-interface client-mac uplink-rate downlink-rate \n");
      exit(EXIT_FAILURE);
   }
   else {
@@ -80,6 +82,8 @@ int main(int argc,char** argv) {
                                                 (short unsigned int *)&client_mac[3], 
                                                 (short unsigned int *)&client_mac[4], 
                                                 (short unsigned int *)&client_mac[5]);
+      uplink_rate=atof(argv[4]);
+      downlink_rate=atof(argv[5]);
   }
     
   /* variable decl */
@@ -122,8 +126,8 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].events = POLLIN;
 
   /* Ingress and egress Links */ 
-  Link uplink(1000,egress_socket);
-  Link downlink(1000,ingress_socket);
+  Link uplink(uplink_rate,egress_socket); /* bytes per second */ 
+  Link downlink(downlink_rate,ingress_socket);
   while(1) {
     /* send packets if possible */ 
     uplink.tick(); 
@@ -132,7 +136,7 @@ int main(int argc,char** argv) {
     struct timespec timeout;
     uint64_t next_transmission_delay = std::min( uplink.wait_time_ns(), downlink.wait_time_ns() );
 #ifdef DEBUG
-    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll ";
+//    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll "<<std::endl;
 #endif
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;    
@@ -145,7 +149,7 @@ int main(int argc,char** argv) {
       uint8_t* src_mac=(uint8_t*)(ether_frame +6); 
       if (  check_mac_addr(src_mac,client_mac) )   {
 #ifdef DEBUG
-           printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
+//           printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
 #endif
            uplink.recv(ether_frame,recv_bytes);
       }
@@ -157,8 +161,8 @@ int main(int argc,char** argv) {
       uint8_t* dst_mac=(uint8_t*)(ether_frame);
       if ( check_mac_addr(dst_mac,client_mac) || check_mac_addr(dst_mac,bcast) )   {
 #ifdef DEBUG
-          if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
-          else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
+//          if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
+//          else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
 #endif
           downlink.recv(ether_frame,recv_bytes);
       }

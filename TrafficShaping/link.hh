@@ -3,6 +3,7 @@
 #define LINK_HH
 #include "payload.hh"
 #include <queue>             
+#define DEBUG
 class Link {
   private : 
     std::queue <Payload> pkt_queue; 
@@ -15,6 +16,8 @@ class Link {
     const uint32_t BURST_SIZE;
     int      link_socket;           /* file descriptor of the link */ 
 
+    uint64_t total_bytes;           /* total bytes ever sent on this link */
+    uint64_t begin_time;            /* time stamp when link went "on" */ 
  public : 
     double link_rate ;     /* current link rate */ 
    
