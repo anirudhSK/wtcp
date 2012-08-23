@@ -106,35 +106,44 @@ def search_for_freq(stream,start_time,end_time,frequency,sample_rate,amplitude) 
     restricted_stream=stream[lower_limit:upper_limit];
     start_index=quad_demod(restricted_stream,frequency,0,sample_rate,amplitude);
     start_time=float(lower_limit+start_index+1)/float(sample_rate)
-    print "Frequency ",frequency," at time ",start_time;
     return start_time
 
 # main function  
 if(len(sys.argv) < 8) : 
-    print "Usage : python recv-pulse.py filename freq_file sample_rate channel pulse_width batch_separation amplitude(from calibration)"
+    print "Usage : python recv-pulse.py filename freq_file sample_rate pulse_width batch_separation amplitude1 amplitude2"
     exit(5)
 
 fh=open(sys.argv[1],'r');
 freq_file_fh=open(sys.argv[2],'r');
 sample_rate=float(sys.argv[3]); 
-channel=int(sys.argv[4]);
-pulse_width=float(sys.argv[5]);
-batch_separation=float(sys.argv[6]);
-amplitude=float(sys.argv[7]);
-stream=read_from_file(fh,channel) ;
-# retrieve the stream based on what you sent 
+pulse_width=float(sys.argv[4]);
+batch_separation=float(sys.argv[5]);
+amplitude=[0.0]*2 # one for each channel cause they have different attenuations. 
+amplitude[0]=float(sys.argv[6]);
+amplitude[1]=float(sys.argv[7]);
+locationAtChannels=[[],[]] # set of locations one for each channel 
 schedule=get_sender_schedule(freq_file_fh);
-locations=[0]*len(schedule)
+for channel in [1,2] : 
+   fh.seek(0); # reset to beginning of file for the other channel 
+   stream=read_from_file(fh,channel) ;
+   # retrieve the stream based on what you sent 
+   locations=[0]*len(schedule)
+   for i in range(0,len(schedule)) :
+       if (i==0) : 
+         # search 1.5 seconds for the first frequency pulse 
+         start_time=0
+         end_time=1.5     
+       else :
+         start_time=locations[i-1]+pulse_width/2; # half way to the end of this pulse 
+         end_time=locations[i-1]+5*pulse_width/2; # half way after the pulse you are looking for 
+   
+       if(schedule[i]!=0) : # not silence
+         locations[i]=search_for_freq(stream,start_time,end_time,schedule[i],sample_rate,amplitude[channel-1]) 
+       else :  # if it is silence 
+         locations[i]=locations[i-1] + batch_separation ; # in effect, "skip" the silence
+   locationAtChannels[channel-1]=locations;
+# now get latencies 
+latency=[0]*len(schedule)
 for i in range(0,len(schedule)) :
-    if (i==0) : 
-      # search 1.5 seconds for the first frequency pulse 
-      start_time=0
-      end_time=1.5     
-    else :
-      start_time=locations[i-1]+pulse_width/2; # half way to the end of this pulse 
-      end_time=locations[i-1]+5*pulse_width/2; # half way after the pulse you are looking for 
-
-    if(schedule[i]!=0) : # not silence
-      locations[i]=search_for_freq(stream,start_time,end_time,schedule[i],sample_rate,amplitude) 
-    else :  # if it is silence 
-      locations[i]=locations[i-1] + batch_separation ; # in effect, "skip" the silence
+       latency[i]=locationAtChannels[0][i]-locationAtChannels[1][i] 
+       print "At frequency",schedule[i]," latency is ",latency[i]
