@@ -6,6 +6,17 @@
 using namespace std;
 
 
+int get_random_tone(int last_freq) {
+   /* get a random tone making sure it's differen from the last one. */
+   int current_freq;
+   do {   
+       current_freq=floor(((double)rand()/RAND_MAX)*10) + 1 ; 
+       /* steps of 100 Hz , so multiply by 100 */
+       current_freq=current_freq*100; 
+   }
+   while(current_freq==last_freq) ;
+   return current_freq;
+}
 const float SAMPLE_RATE=44100;
 int main(int argc,char ** argv) {
 
@@ -69,12 +80,11 @@ int main(int argc,char ** argv) {
    int i=0; 
    int j=0; 
    double last_time;
+   int last_freq =0;
    int current_freq =0;  
    for (i=0;i<num_batches;i++)  {
     for (j=0;j<pulses_per_batch;j++) {
-        current_freq=floor(((double)rand()/RAND_MAX)*10) + 1 ; 
-        /* steps of 100 Hz , so multiply by 100 */
-        current_freq=current_freq*100; 
+        current_freq=get_random_tone(last_freq); 
         std::cout<<"Batch "<<i<<" Pulse "<<j<<" Frequency "<<current_freq<<" at time "<<last_time<<"\n";
         Tone current_tone(current_freq,pulse_duration,SAMPLE_RATE,amplitude); 
         if ((i==0)  && (j==0) ) {
@@ -83,6 +93,7 @@ int main(int argc,char ** argv) {
         else {
             last_time=current_tone.append_to_file(last_time,"signal.dat");
         }
+        last_freq=current_freq;
      }
      /* inter batch silence to allow Skype time to adapt */
      Tone current_tone(current_freq,batch_separation,SAMPLE_RATE,0.0);
