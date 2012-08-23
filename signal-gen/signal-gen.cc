@@ -75,7 +75,7 @@ int main(int argc,char ** argv) {
         current_freq=floor(((double)rand()/RAND_MAX)*10) + 1 ; 
         /* steps of 100 Hz , so multiply by 100 */
         current_freq=current_freq*100; 
-        std::cout<<"Batch "<<i<<" Pulse "<<j<<" Frequency "<<current_freq<<"\n";
+        std::cout<<"Batch "<<i<<" Pulse "<<j<<" Frequency "<<current_freq<<" at time "<<last_time<<"\n";
         Tone current_tone(current_freq,pulse_duration,SAMPLE_RATE,amplitude); 
         if ((i==0)  && (j==0) ) {
             last_time=current_tone.to_file("signal.dat"); 
@@ -86,6 +86,7 @@ int main(int argc,char ** argv) {
      }
      /* inter batch silence to allow Skype time to adapt */
      Tone current_tone(current_freq,batch_separation,SAMPLE_RATE,0.0);
+     std::cout<<"Silence at time "<<last_time<<"\n";
      last_time=current_tone.append_to_file(last_time,"signal.dat");
    }
 }
