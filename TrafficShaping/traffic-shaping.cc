@@ -126,8 +126,8 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].events = POLLIN;
 
   /* Ingress and egress Links */ 
-  Link uplink(uplink_rate,egress_socket); /* bytes per second */ 
-  Link downlink(downlink_rate,ingress_socket);
+  Link uplink(uplink_rate,egress_socket,false,"uplink"); /* bytes per second */ 
+  Link downlink(downlink_rate,ingress_socket,true,"downlink");
   while(1) {
     /* send packets if possible */ 
     uplink.tick(); 

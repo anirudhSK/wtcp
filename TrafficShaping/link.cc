@@ -3,7 +3,7 @@
 #include<assert.h>
 #include<sys/socket.h>
 #include<iostream>
-Link::Link(double rate,int fd)
+Link::Link(double rate,int fd,bool t_output_enable,std::string t_link_name)
  : pkt_queue(),
    pkt_queue_occupancy(0),
    byte_queue_occupancy(0),
@@ -17,6 +17,8 @@ Link::Link(double rate,int fd)
    begin_time(Link::timestamp()),
    last_stat_update(0),
    last_stat_bytes(0), 
+   output_enable(t_output_enable),
+   link_name(t_link_name) ,
    link_rate(rate) {
 
 }
@@ -48,12 +50,14 @@ int Link::recv(uint8_t* ether_frame,uint16_t size) {
      return enqueue(p); 
 }
 
-inline void Link::print_stats(uint64_t ts_now){
-  if(ts_now>last_stat_update+1e9)  {/* 1 second ago */
-          std::cout<<"At time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)((total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bytes per sec "<<token_count<<" tokens \n";
+void Link::print_stats(uint64_t ts_now){
+  if(output_enable) {
+   if(ts_now>last_stat_update+1e9)  {/* 1 second ago */
+          std::cout<<link_name<<" at time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)(8*(total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bits per sec "<<token_count<<" tokens \n";
           last_stat_update=ts_now;
           last_stat_bytes=total_bytes;
    }
+  }
 }
 void Link::tick() {
 

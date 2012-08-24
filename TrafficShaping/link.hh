@@ -21,10 +21,12 @@ class Link {
     uint64_t last_stat_update;      /* last time stats were printed */
     uint64_t last_stat_bytes;       /* number of bytes printed last time */
 
+    bool output_enable;             /* enable or disable stat printing */
+    std::string link_name;          /* Use this while printing stats */
  public : 
     double link_rate ;     /* current link rate */ 
    
-    Link(double rate, int fd);  
+    Link(double rate, int fd,bool t_output_enable,std::string t_link_name);  
     int enqueue(Payload p); 
     int dequeue(); 
     void tick() ; 
@@ -33,6 +35,6 @@ class Link {
     int recv(uint8_t* ether_frame,uint16_t size) ; 
     static uint64_t timestamp(void) ; 
     int wait_time_ns( void ) const ;
-    inline void print_stats(uint64_t ts_now);
+    void print_stats(uint64_t ts_now);
 };   
 #endif
