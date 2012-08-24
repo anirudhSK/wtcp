@@ -6,19 +6,30 @@ from matplotlib.pyplot import *
 import scipy.cluster as cluster
 from Filter import *
 from scipy.signal import kaiserord, lfilter, firwin, freqz
-def read_from_file(fh,channel) : 
+import wave
+import struct 
+def read_from_file(w,channel,start_time,end_time,sample_rate) : 
      ''' File handling routines 
      '''
      stream=[]
-     time_series=[]
-     for line in fh.readlines() : 
-         values=line.split()
-         if( values[0] == ";") : # comment line ditch this
-           continue; 
+     upper_limit=int(end_time*sample_rate);
+     if(upper_limit>w.getnframes()):
+        upper_limit=w.getnframes();
+     lower_limit=int(start_time*sample_rate);
+
+     # seek to lower_limit
+     # find byte position of lower_limit
+     w.setpos(lower_limit)
+     i=1
+     while (i<=(upper_limit-lower_limit)) :
+         frame = w.readframes(1)
          if(channel==1) :
-           stream.append(float(values[1])) 
-         else :
-           stream.append(float(values[2]))
+           value=struct.unpack("<h",frame[0:2])[0]
+         if(channel==2) :
+           value=struct.unpack("<h",frame[2:4])[0]
+         stream.append(value/32768.0);
+         i=i+1
+     print >> sys.stderr, "At End time",end_time," in channel ",channel
      return numpy.array(stream)
 
 def low_pass_filter(cutoff,width,sample_rate) : 
@@ -98,13 +109,9 @@ def get_sender_schedule(freq_file_fh) :
    return schedule
 
 
-def search_for_freq(stream,start_time,end_time,frequency,sample_rate,amplitude) : 
-    upper_limit=int(end_time*sample_rate);
-    if(upper_limit>len(stream)):
-       upper_limit=len(stream);
+def search_for_freq(stream,start_time,frequency,sample_rate,amplitude) : 
     lower_limit=int(start_time*sample_rate);
-    restricted_stream=stream[lower_limit:upper_limit];
-    start_index=quad_demod(restricted_stream,frequency,0,sample_rate,amplitude);
+    start_index=quad_demod(stream,frequency,0,sample_rate,amplitude);
     start_time=float(lower_limit+start_index+1)/float(sample_rate)
     return start_time
 
@@ -113,7 +120,7 @@ if(len(sys.argv) < 8) :
     print "Usage : python recv-pulse.py filename freq_file sample_rate pulse_width batch_separation amplitude1 amplitude2"
     exit(5)
 
-fh=open(sys.argv[1],'r');
+file_name=sys.argv[1];
 freq_file_fh=open(sys.argv[2],'r');
 sample_rate=float(sys.argv[3]); 
 pulse_width=float(sys.argv[4]);
@@ -123,9 +130,9 @@ amplitude[0]=float(sys.argv[6]);
 amplitude[1]=float(sys.argv[7]);
 locationAtChannels=[[],[]] # set of locations one for each channel 
 schedule=get_sender_schedule(freq_file_fh);
+w = wave.open(file_name, 'r')
+
 for channel in [1,2] : 
-   fh.seek(0); # reset to beginning of file for the other channel 
-   stream=read_from_file(fh,channel) ;
    # retrieve the stream based on what you sent 
    locations=[0]*len(schedule)
    for i in range(0,len(schedule)) :
@@ -138,7 +145,8 @@ for channel in [1,2] :
          end_time=locations[i-1]+5*pulse_width/2; # half way after the pulse you are looking for 
    
        if(schedule[i]!=0) : # not silence
-         locations[i]=search_for_freq(stream,start_time,end_time,schedule[i],sample_rate,amplitude[channel-1]) 
+         stream=read_from_file(w,channel,start_time,end_time,sample_rate) ;
+         locations[i]=search_for_freq(stream,start_time,schedule[i],sample_rate,amplitude[channel-1]) 
        else :  # if it is silence 
          locations[i]=locations[i-1] + batch_separation ; # in effect, "skip" the silence
    locationAtChannels[channel-1]=locations;
