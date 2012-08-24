@@ -15,6 +15,8 @@ Link::Link(double rate,int fd)
    link_socket(fd),
    total_bytes(0),
    begin_time(Link::timestamp()),
+   last_stat_update(0),
+   last_stat_bytes(0), 
    link_rate(rate) {
 
 }
@@ -38,12 +40,25 @@ int Link::enqueue(Payload p) {
 
 int Link::recv(uint8_t* ether_frame,uint16_t size) {
      Payload p(ether_frame,size); /* */ 
+     if(link_rate<0) { 
+       /* no need to traffic shape, send packet right away. That way tick will always find an empty queue */
+       send_pkt(p); 
+       return 0;
+     } 
      return enqueue(p); 
 }
 
+inline void Link::print_stats(uint64_t ts_now){
+  if(ts_now>last_stat_update+1e9)  {/* 1 second ago */
+          std::cout<<"At time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)((total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bytes per sec \n";
+          last_stat_update=ts_now;
+          last_stat_bytes=total_bytes;
+   }
+}
 void Link::tick() {
-   static uint64_t last_update=0; 
+
    uint64_t ts_now=Link::timestamp(); 
+   print_stats(ts_now);
    /* compare against last_token_update */
    uint64_t elapsed = ts_now - last_token_update ;
    /* get new count */
@@ -53,15 +68,9 @@ void Link::tick() {
    if(!pkt_queue.empty()) { 
      Payload head=pkt_queue.front();
      while(token_count>=head.size && head.size > 0) {
-        ts_now=Link::timestamp();  
         send_pkt(head);
         dequeue();
-#ifdef DEBUG
-        if(ts_now>last_update+1e9)  {/* 1 second ago */
-          std::cout<<"Sending packet, size "<<head.size<<" , at time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<total_bytes<<" bytes transferred so far "<<" @ "<<float(total_bytes*1e9)/(ts_now-begin_time)<<" bytes per sec \n";
-          last_update=ts_now;
-        }
-#endif
+        ts_now=Link::timestamp();  
         elapsed = ts_now - last_token_update ;
         new_token_count=token_count-head.size+elapsed*link_rate*1.e-9; 
         update_token_count(ts_now,new_token_count);

@@ -18,6 +18,9 @@ class Link {
 
     uint64_t total_bytes;           /* total bytes ever sent on this link */
     uint64_t begin_time;            /* time stamp when link went "on" */ 
+    uint64_t last_stat_update;      /* last time stats were printed */
+    uint64_t last_stat_bytes;       /* number of bytes printed last time */
+
  public : 
     double link_rate ;     /* current link rate */ 
    
@@ -30,5 +33,6 @@ class Link {
     int recv(uint8_t* ether_frame,uint16_t size) ; 
     static uint64_t timestamp(void) ; 
     int wait_time_ns( void ) const ;
+    inline void print_stats(uint64_t ts_now);
 };   
 #endif
