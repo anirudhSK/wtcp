@@ -11,7 +11,7 @@ Link::Link(double rate,int fd)
    last_token_update(Link::timestamp()),
    token_count(0),
    BUFFER_SIZE_BYTES(1000000000),
-   BURST_SIZE(1500), /* 1 packet */
+   BURST_SIZE(1600), /* 1 packet */
    link_socket(fd),
    total_bytes(0),
    begin_time(Link::timestamp()),
@@ -50,7 +50,7 @@ int Link::recv(uint8_t* ether_frame,uint16_t size) {
 
 inline void Link::print_stats(uint64_t ts_now){
   if(ts_now>last_stat_update+1e9)  {/* 1 second ago */
-          std::cout<<"At time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)((total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bytes per sec \n";
+          std::cout<<"At time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)((total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bytes per sec "<<token_count<<" tokens \n";
           last_stat_update=ts_now;
           last_stat_bytes=total_bytes;
    }
