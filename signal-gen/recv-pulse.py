@@ -38,7 +38,7 @@ def low_pass_filter(cutoff,width,sample_rate) :
         Borrowed from http://www.scipy.org/Cookbook/FIRFilter '''
     nyq_rate = sample_rate / 2.0
     width = width/nyq_rate # normalize to Nyq Rate 
-    ripple_db = 60.0 # 60 dB attenuation in the stop band
+    ripple_db = 30.0 # 60 dB attenuation in the stop band
     # Compute the order and Kaiser parameter for the FIR filter.
     N,beta = kaiserord(ripple_db, width)
     cutoff=cutoff/nyq_rate
@@ -95,7 +95,15 @@ def quad_demod(stream,centre_freq,bandwidth,sample_rate,amplitude) :
       ## p.plot(numpy.array([slice_threshold]*len(abs_stream)));
       ## p.draw()
       # show it now 
-      return numpy.nonzero(slice_stream)[0][0]
+      a=numpy.nonzero(slice_stream)
+      while(len(a[0])==0) :
+          # keep reducing the slice threshold till something clicks 
+          print>>sys.stderr,"Failed to find a point crossing the threshold, 0.75* the threshold and retrying"
+          slice_threshold=slice_threshold*0.75;
+          for i in range(0,len(slice_stream)): 
+             slice_stream[i]=1 if (abs_stream[i]>slice_threshold) else 0;
+          a=numpy.nonzero(slice_stream)
+      return a[0][0]
 
 # Now the main routine
 def get_sender_schedule(freq_file_fh) : 
@@ -142,7 +150,7 @@ for channel in [1,2] :
          end_time=1.5     
        else :
          start_time=locations[i-1]+pulse_width/2; # half way to the end of this pulse 
-         end_time=locations[i-1]+5*pulse_width/2; # half way after the pulse you are looking for 
+         end_time=locations[i-1]+3*pulse_width/2; # half way after the pulse you are looking for 
    
        if(schedule[i]!=0) : # not silence
          stream=read_from_file(w,channel,start_time,end_time,sample_rate) ;
@@ -153,5 +161,5 @@ for channel in [1,2] :
 # now get latencies 
 latency=[0]*len(schedule)
 for i in range(0,len(schedule)) :
-       latency[i]=locationAtChannels[0][i]-locationAtChannels[1][i] 
+       latency[i]=locationAtChannels[1][i]-locationAtChannels[0][i] 
        print "At frequency",schedule[i]," latency is ",latency[i]
