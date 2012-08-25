@@ -12,7 +12,7 @@ int get_random_tone(int last_freq) {
    do {   
        current_freq=floor(((double)rand()/RAND_MAX)*10) + 1 ; 
        /* steps of 100 Hz , so multiply by 100 */
-       current_freq=current_freq*100; 
+       current_freq=current_freq*100+100;/* 200 through 1100 */ 
    }
    while(current_freq==last_freq) ;
    return current_freq;
