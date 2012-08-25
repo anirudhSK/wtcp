@@ -136,7 +136,7 @@ int main(int argc,char** argv) {
     struct timespec timeout;
     uint64_t next_transmission_delay = std::min( uplink.wait_time_ns(), downlink.wait_time_ns() );
 #ifdef DEBUG
-//    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll "<<std::endl;
+//    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink.pkt_queue_occupancy<<std::endl<<std::endl;
 #endif
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;    

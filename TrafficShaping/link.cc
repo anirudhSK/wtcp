@@ -5,7 +5,6 @@
 #include<iostream>
 Link::Link(double rate,int fd,bool t_output_enable,std::string t_link_name)
  : pkt_queue(),
-   pkt_queue_occupancy(0),
    byte_queue_occupancy(0),
    next_transmission(-1),
    last_token_update(Link::timestamp()),
@@ -19,7 +18,8 @@ Link::Link(double rate,int fd,bool t_output_enable,std::string t_link_name)
    last_stat_bytes(0), 
    output_enable(t_output_enable),
    link_name(t_link_name) ,
-   link_rate(rate) {
+   link_rate(rate),
+   pkt_queue_occupancy(0)  {
 
 }
 
@@ -83,12 +83,13 @@ void Link::tick() {
      }
      /* if there are packets wait till tokens accumulate in the future */ 
      if(!pkt_queue.empty())  {
-      uint32_t requiredTokens = head.size-token_count; 
+      long double requiredTokens = head.size-token_count; 
       uint64_t wait_time_ns = (1.e9*requiredTokens) / link_rate ;  
       next_transmission=wait_time_ns+ts_now;
      }
+     else next_transmission = (uint64_t)-1;
    }
-   else next_transmission = -1 ;
+   else next_transmission = (uint64_t)-1 ;
 }
 
 void Link::update_token_count(uint64_t current_ts,long double new_count) {
@@ -106,7 +107,7 @@ void Link::send_pkt(Payload p)  {
    total_bytes=total_bytes+sent_bytes;
 }
 
-int Link::wait_time_ns( void ) const
+uint64_t Link::wait_time_ns( void ) const
 {
   return next_transmission - Link::timestamp();
 }

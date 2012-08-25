@@ -7,7 +7,6 @@
 class Link {
   private : 
     std::queue <Payload> pkt_queue; 
-    uint32_t pkt_queue_occupancy ;  /* # packets in queue */
     uint32_t byte_queue_occupancy ; /* # bytes   in queue */
     uint64_t next_transmission;
     uint64_t last_token_update;     /* time at which token count was last updated */
@@ -25,7 +24,8 @@ class Link {
     std::string link_name;          /* Use this while printing stats */
  public : 
     double link_rate ;     /* current link rate */ 
-   
+    uint32_t pkt_queue_occupancy ;  /* # packets in queue */
+  
     Link(double rate, int fd,bool t_output_enable,std::string t_link_name);  
     int enqueue(Payload p); 
     int dequeue(); 
@@ -34,7 +34,7 @@ class Link {
     void send_pkt(Payload p);
     int recv(uint8_t* ether_frame,uint16_t size) ; 
     static uint64_t timestamp(void) ; 
-    int wait_time_ns( void ) const ;
+    uint64_t wait_time_ns( void ) const ;
     void print_stats(uint64_t ts_now);
 };   
 #endif
