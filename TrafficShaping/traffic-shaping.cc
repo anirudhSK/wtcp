@@ -82,8 +82,8 @@ int main(int argc,char** argv) {
                                                 (short unsigned int *)&client_mac[3], 
                                                 (short unsigned int *)&client_mac[4], 
                                                 (short unsigned int *)&client_mac[5]);
-      uplink_rate=atof(argv[4]);
-      downlink_rate=atof(argv[5]);
+      uplink_rate=atof(argv[4])/8.0;
+      downlink_rate=atof(argv[5])/8.0;          /* rates are in bits per sec */
   }
     
   /* variable decl */
@@ -126,7 +126,7 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].events = POLLIN;
 
   /* Ingress and egress Links */ 
-  Link uplink(uplink_rate,egress_socket,false,"uplink"); /* bytes per second */ 
+  Link uplink(uplink_rate,egress_socket,true,"uplink"); /* bytes per second */ 
   Link downlink(downlink_rate,ingress_socket,true,"downlink");
   while(1) {
     /* send packets if possible */ 
