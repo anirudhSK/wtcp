@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <poll.h>            // poll.h
 #include "link.hh"
+#include "unrestrained-link.hh"
 #include "rate-schedule.hh"
 #define DEBUG
 #include<iostream>
@@ -132,7 +133,7 @@ int main(int argc,char** argv) {
     return 1;
   }
    
-  
+  std::cout<<"Cleared cmd line args \n"; 
   /* variable decl */
   int ingress_socket,egress_socket,recv_bytes;
 
@@ -173,15 +174,17 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].events = POLLIN;
 
   /* Ingress and egress Links */ 
-  Link uplink(uplink_rate_schedule,egress_socket,true,"uplink",uplink_rate<0);         /* handles the case were uplink_rate<0 by setting , by default it's 1, so this is false */
-  Link downlink(downlink_rate_schedule,ingress_socket,true,"downlink",downlink_rate<0);
+  //Link uplink(egress_socket,true,"uplink");
+  //Link downlink(ingress_socket,true,"downlink");
+  Link* uplink= new UnrestrainedLink (egress_socket,true,"uplink");
+  Link* downlink=new UnrestrainedLink (ingress_socket,true,"downlink");
   while(1) {
     /* send packets if possible */ 
-    uplink.tick(); 
-    downlink.tick();
+    uplink->tick(); 
+    downlink->tick();
     /* set timeouts */ 
     struct timespec timeout;
-    uint64_t next_transmission_delay = std::min( uplink.wait_time_ns(), downlink.wait_time_ns() );
+    uint64_t next_transmission_delay = std::min( uplink->wait_time_ns(), downlink->wait_time_ns() );
 #ifdef DEBUG
 //    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink.pkt_queue_occupancy<<std::endl<<std::endl;
 #endif
@@ -198,7 +201,7 @@ int main(int argc,char** argv) {
 #ifdef DEBUG
 //           printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
 #endif
-           uplink.recv(ether_frame,recv_bytes);
+           uplink->recv(ether_frame,recv_bytes);
       }
     }
     /* egress to ingress */ 
@@ -211,7 +214,7 @@ int main(int argc,char** argv) {
 //          if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
 //          else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
 #endif
-          downlink.recv(ether_frame,recv_bytes);
+          downlink->recv(ether_frame,recv_bytes);
       }
     }
   }
