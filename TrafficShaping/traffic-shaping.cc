@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <poll.h>            // poll.h
 #include "link.hh"
+#include "token-bucket.hh"
 #include "unrestrained-link.hh"
 #include "rate-schedule.hh"
 #define DEBUG
@@ -174,8 +175,6 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].events = POLLIN;
 
   /* Ingress and egress Links */ 
-  //Link uplink(egress_socket,true,"uplink");
-  //Link downlink(ingress_socket,true,"downlink");
   Link* uplink= new UnrestrainedLink (egress_socket,true,"uplink");
   Link* downlink=new UnrestrainedLink (ingress_socket,true,"downlink");
   while(1) {

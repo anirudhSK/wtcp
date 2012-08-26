@@ -8,9 +8,7 @@
 class Link {
   private : 
     /* Queues and buffers */
-    std::queue <Payload> pkt_queue; 
     uint32_t byte_queue_occupancy ; /* # bytes   in queue */
-    uint64_t next_transmission;
     uint64_t BUFFER_SIZE_BYTES;
     int      link_socket;           /* file descriptor of the link */ 
 
@@ -23,9 +21,11 @@ class Link {
     /* monitoring */ 
     bool output_enable;             /* enable or disable stat printing */
     std::string link_name;          /* Use this while printing stats */
- 
+ protected :
+    std::queue <Payload> pkt_queue; 
+    uint64_t next_transmission;
+
  public : 
-//  
     uint32_t pkt_queue_occupancy ;  /* # packets in queue */
  
     Link(int fd,bool t_output_enable,std::string t_link_name);
@@ -34,8 +34,8 @@ class Link {
     void send_pkt(Payload p);
     static uint64_t timestamp(void) ; 
     uint64_t wait_time_ns( void ) const ;
-    void print_stats(uint64_t ts_now); /* Not everyone has tokens to print out */ 
-    
+    void print_stats(uint64_t ts_now); 
+ 
     virtual void tick() = 0;
     virtual int recv(uint8_t* ether_frame,uint16_t size) = 0;
     virtual ~Link();
