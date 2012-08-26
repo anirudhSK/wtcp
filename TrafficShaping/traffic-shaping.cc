@@ -15,6 +15,7 @@
 #include "token-bucket.hh"
 #include "cbr-link.hh"
 #include "schedule-link.hh"
+#include "trace-link.hh"
 #include "rate-schedule.hh"
 #define DEBUG
 #include<iostream>
