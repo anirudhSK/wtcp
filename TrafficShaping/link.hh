@@ -14,16 +14,16 @@ class Link {
 
     /* Statistics */
     uint64_t total_bytes;           /* total bytes ever sent on this link */
-    uint64_t begin_time;            /* time stamp when link went "on" */ 
     uint64_t last_stat_update;      /* last time stats were printed */
     uint64_t last_stat_bytes;       /* number of bytes printed last time */
 
     /* monitoring */ 
     bool output_enable;             /* enable or disable stat printing */
-    std::string link_name;          /* Use this while printing stats */
  protected :
+    std::string link_name;          /* Use this while printing stats */
     std::queue <Payload> pkt_queue; 
     uint64_t next_transmission;
+    uint64_t begin_time;            /* time stamp when link went "on" */ 
 
  public : 
     uint32_t pkt_queue_occupancy ;  /* # packets in queue */

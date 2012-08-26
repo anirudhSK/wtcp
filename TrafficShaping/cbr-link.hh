@@ -6,6 +6,6 @@
 class CbrLink: public TokenBucketLink {
    public : 
      CbrLink(int fd,bool output_enable,std::string link_name,double link_rate);
-     virtual void update_token_count(uint64_t current_ts); 
+     virtual void update_token_count(uint64_t current_ts,long double drained); 
 };   
 #endif

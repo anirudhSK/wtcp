@@ -14,6 +14,7 @@
 #include "unrestrained-link.hh"
 #include "token-bucket.hh"
 #include "cbr-link.hh"
+#include "schedule-link.hh"
 #include "rate-schedule.hh"
 #define DEBUG
 #include<iostream>
@@ -54,16 +55,23 @@ int recv_packet(int socket,uint8_t* frame) {
      return recv_bytes;
 }
 
-void bind_to_if(int socket,const char* if_name) {
-  /* Bind to interface, 
+int bind_to_if(const char* if_name) {
+  /* Bind to interface, return a socket 
      code that actually works and doesn't get random packets from other interfaces */
+  int socket_fd;
+  /* Create a packet socket, that binds to eth0 by default. Receive all packets using ETH_P_ALL */
+  if ((socket_fd = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
+    perror ("socket() failed ");
+    exit (EXIT_FAILURE);
+  }
+  /* Now get interface details */ 
   struct sockaddr_ll sll;
   struct ifreq ifr;
   bzero(&sll, sizeof(sll));
   bzero(&ifr, sizeof(ifr));
   /* First Get the Interface Index */
   strncpy((char *)ifr.ifr_name, if_name, IFNAMSIZ);
-  if((ioctl(socket, SIOCGIFINDEX, &ifr)) == -1) {
+  if((ioctl(socket_fd, SIOCGIFINDEX, &ifr)) == -1) {
    perror("Error getting Interface index !\n");
    exit(-1);
   }
@@ -75,10 +83,11 @@ void bind_to_if(int socket,const char* if_name) {
   sll.sll_ifindex = ifr.ifr_ifindex;
   sll.sll_protocol = htons(ETH_P_ALL);
 
-  if((bind(socket, (struct sockaddr *)&sll, sizeof(sll)))== -1) {
+  if((bind(socket_fd, (struct sockaddr *)&sll, sizeof(sll)))== -1) {
     perror("Error binding raw socket to interface\n");
     exit(-1);
   }
+ return socket_fd;
 }
 
 int main(int argc,char** argv) {
@@ -88,7 +97,13 @@ int main(int argc,char** argv) {
   float uplink_rate=1; 
   float downlink_rate=1;
 
-  // Declare the supported options.
+  /* ingress and egress Links */ 
+  Link *uplink,*downlink;
+
+  /* variable decl */
+  int ingress_socket,egress_socket,recv_bytes;
+
+  /* declare the supported options. */
   po::options_description desc("Allowed options");
   desc.add_options()
       ("ingress",po::value<std::string>(), "ingress interface name")
@@ -108,16 +123,21 @@ int main(int argc,char** argv) {
       std::cout << desc << "\n";
       return 1;
   }
-  RateSchedule uplink_rate_schedule,downlink_rate_schedule; 
   if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-rate") && vm.count("downlink-rate")) {
     ingress=vm["ingress"].as<std::string>();
     egress=vm["egress"].as<std::string>();
     uplink_rate=vm["uplink-rate"].as<float>();
     downlink_rate=vm["downlink-rate"].as<float>();
     read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
-    /* Ingress and egress rate schedules */
-    uplink_rate_schedule=RateSchedule (uplink_rate);
-    downlink_rate_schedule=RateSchedule(downlink_rate);
+    /* bind to ingress and egress */
+    ingress_socket=bind_to_if(ingress.c_str()); 
+    egress_socket=bind_to_if(egress.c_str()); 
+    /* uplink and downlink */
+    std::cout<<"CBR link here \n";
+    if(downlink_rate<0) downlink=new UnrestrainedLink (ingress_socket,true,"downlink");
+    else                downlink=new CbrLink(ingress_socket,true,"downlink",downlink_rate);
+    if(uplink_rate<0) uplink=new UnrestrainedLink (egress_socket,true,"uplink");
+    else              uplink=new CbrLink(egress_socket,true,"uplink",uplink_rate);
   } 
   else if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-schedule") && vm.count("downlink-schedule")) {
     ingress=vm["ingress"].as<std::string>();
@@ -125,9 +145,13 @@ int main(int argc,char** argv) {
     uplink_schedule=vm["uplink-schedule"].as<std::string>();
     downlink_schedule=vm["downlink-schedule"].as<std::string>();
     read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
-    /* Schedules as files */
-    uplink_rate_schedule=RateSchedule (uplink_schedule);
-    downlink_rate_schedule=RateSchedule(downlink_schedule);
+    /* bind to ingress and egress */
+    ingress_socket=bind_to_if(ingress.c_str()); 
+    egress_socket=bind_to_if(egress.c_str()); 
+    /* uplink and downlink */
+    std::cout<<"Reading from a schedule here \n";
+    downlink=new ScheduleLink(ingress_socket,true,"downlink",downlink_schedule);
+    uplink=new ScheduleLink(egress_socket,true,"uplink",uplink_schedule);
   }
 
   else {
@@ -135,10 +159,7 @@ int main(int argc,char** argv) {
     return 1;
   }
    
-  std::cout<<"Cleared cmd line args \n"; 
-  /* variable decl */
-  int ingress_socket,egress_socket,recv_bytes;
-
+  
   /* Allocate memory for the buffers */
   uint8_t* ether_frame = (uint8_t *) malloc (IP_MAXPACKET);
   if (ether_frame == NULL) {
@@ -149,24 +170,6 @@ int main(int argc,char** argv) {
   /* Zero out all bytes */
   memset (ether_frame, 0, IP_MAXPACKET);
 
-  /* Create a packet socket, that binds to eth0 by default. Receive all packets using ETH_P_ALL */
-  if ((ingress_socket = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
-    perror ("socket() failed ");
-    exit (EXIT_FAILURE);
-  }
-
-  /* bind to ingress */
-  bind_to_if(ingress_socket,ingress.c_str()); 
-
-  /* Create another packet socket for the egress . In some sense we are a dumb software repeater */
-  if ((egress_socket = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
-    perror ("socket() failed ");
-    exit (EXIT_FAILURE);
-  }
-
-  /* bind to egress */
-  bind_to_if(egress_socket,egress.c_str()); 
-
   /* create a poll structure for ingress and egress */
   struct pollfd poll_fds[ 2 ];
   poll_fds[ 0 ].fd = ingress_socket;
@@ -175,9 +178,6 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].fd = egress_socket;
   poll_fds[ 1 ].events = POLLIN;
 
-  /* Ingress and egress Links */ 
-  Link* uplink= new UnrestrainedLink (egress_socket,true,"uplink");
-  Link* downlink=new UnrestrainedLink (ingress_socket,true,"downlink");
   while(1) {
     /* send packets if possible */ 
     uplink->tick(); 
@@ -186,7 +186,7 @@ int main(int argc,char** argv) {
     struct timespec timeout;
     uint64_t next_transmission_delay = std::min( uplink->wait_time_ns(), downlink->wait_time_ns() );
 #ifdef DEBUG
-//    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink.pkt_queue_occupancy<<std::endl<<std::endl;
+//    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink->pkt_queue_occupancy<<std::endl<<std::endl;
 #endif
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;    
@@ -211,8 +211,8 @@ int main(int argc,char** argv) {
       uint8_t* dst_mac=(uint8_t*)(ether_frame);
       if ( check_mac_addr(dst_mac,client_mac) || check_mac_addr(dst_mac,bcast) )   {
 #ifdef DEBUG
-//          if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
-//          else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
+          if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
+          else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
 #endif
           downlink->recv(ether_frame,recv_bytes);
       }

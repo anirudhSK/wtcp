@@ -7,8 +7,7 @@ int TokenBucketLink::recv(uint8_t* ether_frame,uint16_t size) {
 void TokenBucketLink::tick() {
    uint64_t ts_now=Link::timestamp(); 
    Link::print_stats(ts_now);
-   update_token_count(ts_now);
-   // check_current_rate(ts_now); TODO Figure out where to place this ? Take this out once you do so.   
+   update_token_count(ts_now,0);
    /* Can I send pkts right away ? */ 
    if(!pkt_queue.empty()) { 
      Payload head=pkt_queue.front();
@@ -16,7 +15,7 @@ void TokenBucketLink::tick() {
         send_pkt(head);
         dequeue();
         ts_now=Link::timestamp();  
-        update_token_count(ts_now);
+        update_token_count(ts_now,head.size);
         if(pkt_queue.empty()) head.size=-1;
         else  head=pkt_queue.front();
      }

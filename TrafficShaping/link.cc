@@ -64,13 +64,13 @@ Link::Link(int fd,bool t_output_enable,std::string t_link_name)
    BUFFER_SIZE_BYTES(1000000000),
    link_socket(fd),
    total_bytes(0),
-   begin_time(Link::timestamp()),
    last_stat_update(0),
    last_stat_bytes(0), 
    output_enable(t_output_enable),
    link_name(t_link_name) ,
    pkt_queue(),
    next_transmission(-1),
-   pkt_queue_occupancy(0)  {
+   begin_time(Link::timestamp()),
+   pkt_queue_occupancy(0) {
 
 }
