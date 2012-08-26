@@ -2,6 +2,7 @@
 #ifndef LINK_HH
 #define LINK_HH
 #include "payload.hh"
+#include "rate-schedule.hh"
 #include <queue>             
 #define DEBUG
 class Link {
@@ -22,11 +23,13 @@ class Link {
 
     bool output_enable;             /* enable or disable stat printing */
     std::string link_name;          /* Use this while printing stats */
+    bool unrestrained;
  public : 
+    RateSchedule rate_schedule;     /* schedule for link rates */  
     double link_rate ;     /* current link rate */ 
     uint32_t pkt_queue_occupancy ;  /* # packets in queue */
-  
-    Link(double rate, int fd,bool t_output_enable,std::string t_link_name);  
+ 
+    Link(RateSchedule t_rate_schedule, int fd,bool t_output_enable,std::string t_link_name,bool t_unrestrained);  
     int enqueue(Payload p); 
     int dequeue(); 
     void tick() ; 
@@ -36,5 +39,6 @@ class Link {
     static uint64_t timestamp(void) ; 
     uint64_t wait_time_ns( void ) const ;
     void print_stats(uint64_t ts_now);
+    void check_current_rate(uint64_t ts); 
 };   
 #endif

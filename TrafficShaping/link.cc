@@ -3,11 +3,11 @@
 #include<assert.h>
 #include<sys/socket.h>
 #include<iostream>
-Link::Link(double rate,int fd,bool t_output_enable,std::string t_link_name)
+Link::Link(RateSchedule t_rate_schedule,int fd,bool t_output_enable,std::string t_link_name,bool t_unrestrained)
  : pkt_queue(),
    byte_queue_occupancy(0),
    next_transmission(-1),
-   last_token_update(Link::timestamp()),
+   last_token_update(Link::timestamp()),  /* token count is in bytes */
    token_count(0),
    BUFFER_SIZE_BYTES(1000000000),
    BURST_SIZE(1600), /* 1 packet */
@@ -18,9 +18,11 @@ Link::Link(double rate,int fd,bool t_output_enable,std::string t_link_name)
    last_stat_bytes(0), 
    output_enable(t_output_enable),
    link_name(t_link_name) ,
-   link_rate(rate),
+   unrestrained(t_unrestrained),
+   rate_schedule(t_rate_schedule),
+   link_rate(rate_schedule.current_rate), /* bits per second */
    pkt_queue_occupancy(0)  {
-
+   std::cout<<link_name<<" starting rate is"<<link_rate<<std::endl;
 }
 
 int Link::dequeue() {
@@ -42,7 +44,7 @@ int Link::enqueue(Payload p) {
 
 int Link::recv(uint8_t* ether_frame,uint16_t size) {
      Payload p(ether_frame,size); /* */ 
-     if(link_rate<0) { 
+     if(unrestrained) { 
        /* no need to traffic shape, send packet right away. That way tick will always find an empty queue */
        send_pkt(p); 
        return 0;
@@ -59,15 +61,32 @@ void Link::print_stats(uint64_t ts_now){
    }
   }
 }
+
+void Link::check_current_rate(uint64_t ts) {
+      if((ts-begin_time)>=(uint64_t)rate_schedule.next_timestamp*1e9) { /* nano secs to secs conversion */ 
+        assert((!rate_schedule.rate_list.empty()));  /* schedule list can't be empty */
+        link_rate=std::get<1>(rate_schedule.rate_list.front()); 
+        std::cout<<link_name<<" switched to new rate "<<link_rate<<" at time "<<ts<<" \n";
+        rate_schedule.rate_list.pop_front(); 
+        if(!rate_schedule.rate_list.empty()) {
+          rate_schedule.next_timestamp=std::get<0>(rate_schedule.rate_list.front());
+        }
+        else {
+          rate_schedule.next_timestamp=(uint16_t)-1;
+        }
+      }
+}
 void Link::tick() {
 
    uint64_t ts_now=Link::timestamp(); 
    print_stats(ts_now);
+   if(unrestrained) return; /* Don't do anything */
    /* compare against last_token_update */
    uint64_t elapsed = ts_now - last_token_update ;
    /* get new count */
-   long double new_token_count=token_count+elapsed*link_rate*1.e-9; 
+   long double new_token_count=token_count+elapsed*(link_rate/8.0)*1.e-9; /* token count in bytes */
    update_token_count(ts_now,new_token_count);
+   check_current_rate(ts_now);
    /* Can I send pkts right away ? */ 
    if(!pkt_queue.empty()) { 
      Payload head=pkt_queue.front();
@@ -76,7 +95,7 @@ void Link::tick() {
         dequeue();
         ts_now=Link::timestamp();  
         elapsed = ts_now - last_token_update ;
-        new_token_count=token_count-head.size+elapsed*link_rate*1.e-9; 
+        new_token_count=token_count-head.size+elapsed*(link_rate/8.0)*1.e-9; 
         update_token_count(ts_now,new_token_count);
         if(pkt_queue.empty()) head.size=-1;
         else  head=pkt_queue.front();
@@ -84,7 +103,7 @@ void Link::tick() {
      /* if there are packets wait till tokens accumulate in the future */ 
      if(!pkt_queue.empty())  {
       long double requiredTokens = head.size-token_count; 
-      uint64_t wait_time_ns = (1.e9*requiredTokens) / link_rate ;  
+      uint64_t wait_time_ns = (1.e9*requiredTokens) / (link_rate/8.0) ;  
       next_transmission=wait_time_ns+ts_now;
      }
      else next_transmission = (uint64_t)-1;

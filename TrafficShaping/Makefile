@@ -1,10 +1,10 @@
 source =  
-objects = link.o  payload.o 
+objects = link.o  payload.o rate-schedule.o
 executables = traffic-shaping udp-flood
 
 CXX = g++
 CXXFLAGS = -g -O3 -std=c++0x -ffast-math -pedantic -Werror -Wall -Wextra -Weffc++ -fno-default-inline -pipe -D_FILE_OFFSET_BITS=64 -D_XOPEN_SOURCE=500 -D_GNU_SOURCE
-LIBS = -lm -lrt -lfftw3
+LIBS = -lm -lrt -lfftw3 -lboost_program_options
 
 all: $(executables)
 

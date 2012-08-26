@@ -11,13 +11,29 @@
 #include <assert.h>
 #include <poll.h>            // poll.h
 #include "link.hh"
+#include "rate-schedule.hh"
 #define DEBUG
 #include<iostream>
+#include<vector>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/option.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/parsers.hpp>
+namespace po = boost::program_options;
 uint8_t bcast[6]={0xff,0xff,0xff,0xff,0xff,0xff};
 
 int check_mac_addr(uint8_t m1[6],uint8_t m2[6]) {
        /* check if two mac addr match */
       return ((m1[0]==m2[0])&&(m1[1]==m2[1])&&(m1[2]==m2[2])&&(m1[3]==m2[3])&&(m1[4]==m2[4])&&(m1[5]==m2[5])) ;
+}
+
+void read_mac_addr(const char* mac_str,uint8_t* client_mac) {  
+     sscanf(mac_str, "%hx:%hx:%hx:%hx:%hx:%hx", (short unsigned int *)&client_mac[0], 
+                                                (short unsigned int *)&client_mac[1],
+                                                (short unsigned int *)&client_mac[2],
+                                                (short unsigned int *)&client_mac[3], 
+                                                (short unsigned int *)&client_mac[4], 
+                                                (short unsigned int *)&client_mac[5]);
 }
 
 int recv_packet(int socket,uint8_t* frame) {
@@ -35,7 +51,7 @@ int recv_packet(int socket,uint8_t* frame) {
      return recv_bytes;
 }
 
-void bind_to_if(int socket,char* if_name) {
+void bind_to_if(int socket,const char* if_name) {
   /* Bind to interface, 
      code that actually works and doesn't get random packets from other interfaces */
   struct sockaddr_ll sll;
@@ -64,28 +80,59 @@ void bind_to_if(int socket,char* if_name) {
 
 int main(int argc,char** argv) {
   /* command line handling */
-  char ingress[10];
-  char egress[10];
+  std::string ingress,egress,uplink_schedule,downlink_schedule;
   uint8_t client_mac[6]; /* read from command line */
-  float uplink_rate ; 
-  float downlink_rate;
-  if(argc < 6)  {
-     printf("Usage: packet-forwarder ingress-interface egress-interface client-mac uplink-rate downlink-rate \n");
-     exit(EXIT_FAILURE);
+  float uplink_rate=1; 
+  float downlink_rate=1;
+
+  // Declare the supported options.
+  po::options_description desc("Allowed options");
+  desc.add_options()
+      ("ingress",po::value<std::string>(), "ingress interface name")
+      ("egress" ,po::value<std::string>(), "egress interface name")
+      ("client-mac" ,po::value<std::string>(), "client's MAC address")
+      ("uplink-rate" ,po::value<float>(), "uplink rate in bits per sec")
+      ("downlink-rate" ,po::value<float>(), "downlink rate in bits per sec")
+      ("uplink-schedule" ,po::value<std::string>(), "filename with uplink rate schedule")
+      ("downlink-schedule" ,po::value<std::string>(), "filename with downlink rate schedule")
+      ("help" ,"produce help message")
+  ;
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);    
+  
+  if (vm.count("help")) {
+      std::cout << desc << "\n";
+      return 1;
   }
+  RateSchedule uplink_rate_schedule,downlink_rate_schedule; 
+  if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-rate") && vm.count("downlink-rate")) {
+    ingress=vm["ingress"].as<std::string>();
+    egress=vm["egress"].as<std::string>();
+    uplink_rate=vm["uplink-rate"].as<float>();
+    downlink_rate=vm["downlink-rate"].as<float>();
+    read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
+    /* Ingress and egress rate schedules */
+    uplink_rate_schedule=RateSchedule (uplink_rate);
+    downlink_rate_schedule=RateSchedule(downlink_rate);
+  } 
+  else if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-schedule") && vm.count("downlink-schedule")) {
+    ingress=vm["ingress"].as<std::string>();
+    egress=vm["egress"].as<std::string>();
+    uplink_schedule=vm["uplink-schedule"].as<std::string>();
+    downlink_schedule=vm["downlink-schedule"].as<std::string>();
+    read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
+    /* Schedules as files */
+    uplink_rate_schedule=RateSchedule (uplink_schedule);
+    downlink_rate_schedule=RateSchedule(downlink_schedule);
+  }
+
   else {
-     strcpy(ingress,argv[1]);
-     strcpy(egress,argv[2]);
-     sscanf(argv[3], "%hx:%hx:%hx:%hx:%hx:%hx", (short unsigned int *)&client_mac[0], 
-                                                (short unsigned int *)&client_mac[1],
-                                                (short unsigned int *)&client_mac[2],
-                                                (short unsigned int *)&client_mac[3], 
-                                                (short unsigned int *)&client_mac[4], 
-                                                (short unsigned int *)&client_mac[5]);
-      uplink_rate=atof(argv[4])/8.0;
-      downlink_rate=atof(argv[5])/8.0;          /* rates are in bits per sec */
+    std::cout << desc << "\n";
+    return 1;
   }
-    
+   
+  
   /* variable decl */
   int ingress_socket,egress_socket,recv_bytes;
 
@@ -106,7 +153,7 @@ int main(int argc,char** argv) {
   }
 
   /* bind to ingress */
-  bind_to_if(ingress_socket,ingress); 
+  bind_to_if(ingress_socket,ingress.c_str()); 
 
   /* Create another packet socket for the egress . In some sense we are a dumb software repeater */
   if ((egress_socket = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
@@ -115,7 +162,7 @@ int main(int argc,char** argv) {
   }
 
   /* bind to egress */
-  bind_to_if(egress_socket,egress); 
+  bind_to_if(egress_socket,egress.c_str()); 
 
   /* create a poll structure for ingress and egress */
   struct pollfd poll_fds[ 2 ];
@@ -126,8 +173,8 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].events = POLLIN;
 
   /* Ingress and egress Links */ 
-  Link uplink(uplink_rate,egress_socket,true,"uplink"); /* bytes per second */ 
-  Link downlink(downlink_rate,ingress_socket,true,"downlink");
+  Link uplink(uplink_rate_schedule,egress_socket,true,"uplink",uplink_rate<0);         /* handles the case were uplink_rate<0 by setting , by default it's 1, so this is false */
+  Link downlink(downlink_rate_schedule,ingress_socket,true,"downlink",downlink_rate<0);
   while(1) {
     /* send packets if possible */ 
     uplink.tick(); 
