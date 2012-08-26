@@ -1,5 +1,5 @@
 source =  
-objects = link.o  payload.o rate-schedule.o unrestrained-link.o token-bucket.o
+objects = link.o  payload.o rate-schedule.o unrestrained-link.o token-bucket.o cbr-link.o
 executables = traffic-shaping udp-flood
 
 CXX = g++

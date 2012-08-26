@@ -11,8 +11,9 @@
 #include <assert.h>
 #include <poll.h>            // poll.h
 #include "link.hh"
-#include "token-bucket.hh"
 #include "unrestrained-link.hh"
+#include "token-bucket.hh"
+#include "cbr-link.hh"
 #include "rate-schedule.hh"
 #define DEBUG
 #include<iostream>
