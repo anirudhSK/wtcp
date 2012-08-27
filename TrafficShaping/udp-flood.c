@@ -49,6 +49,12 @@ int main( int argc, char *argv[] )
     perror( "bind" );
     exit( 1 );
   }
+  /* bind to device */ 
+  if ( setsockopt( sock, SOL_SOCKET, SO_BINDTODEVICE, argv[1], 4 ) < 0 ) {
+    fprintf( stderr, "Error binding to %s\n", argv[1] );
+    perror( "setsockopt SO_BINDTODEVICE" );
+    exit( 1 );
+  }
 
   /* random address to flood to */ 
   addr.sin_family=AF_INET;

@@ -22,7 +22,6 @@ set -x
 sudo ifconfig $ingress up promisc
 sudo ifconfig $egress up promisc
 
-# TODO: Set client MAC address
 
 # Disable segmentation offloading to NIC. 
 

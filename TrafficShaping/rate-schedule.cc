@@ -8,7 +8,10 @@ RateSchedule::RateSchedule(std::string t_file_name) :
      std::ifstream rate_stream (file_name.c_str());
      uint16_t time;
      uint32_t rate;
-     /* TODO Check that file actually exists */ 
+     if(!rate_stream.good()) {
+        std::cout<<"Rate schedule "<<file_name<<" doesn't really exist \n";
+        exit(-5);
+     }
      while (true) {
        rate_stream>>time>>rate;
        if( rate_stream.eof() ) break;

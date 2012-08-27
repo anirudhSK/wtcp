@@ -93,10 +93,8 @@ int bind_to_if(const char* if_name) {
 
 int main(int argc,char** argv) {
   /* command line handling */
-  std::string ingress,egress,uplink_schedule,downlink_schedule;
+  std::string ingress,egress;
   uint8_t client_mac[6]; /* read from command line */
-  float uplink_rate=1; 
-  float downlink_rate=1;
 
   /* ingress and egress Links */ 
   Link *uplink,*downlink;
@@ -114,6 +112,8 @@ int main(int argc,char** argv) {
       ("downlink-rate" ,po::value<float>(), "downlink rate in bits per sec")
       ("uplink-schedule" ,po::value<std::string>(), "filename with uplink rate schedule")
       ("downlink-schedule" ,po::value<std::string>(), "filename with downlink rate schedule")
+      ("uplink-trace" ,po::value<std::string>(), "filename with uplink trace")
+      ("downlink-trace" ,po::value<std::string>(), "filename with downlink trace")
       ("help" ,"produce help message")
   ;
   po::variables_map vm;
@@ -127,8 +127,8 @@ int main(int argc,char** argv) {
   if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-rate") && vm.count("downlink-rate")) {
     ingress=vm["ingress"].as<std::string>();
     egress=vm["egress"].as<std::string>();
-    uplink_rate=vm["uplink-rate"].as<float>();
-    downlink_rate=vm["downlink-rate"].as<float>();
+    float uplink_rate=vm["uplink-rate"].as<float>();
+    float downlink_rate=vm["downlink-rate"].as<float>();
     read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
     /* bind to ingress and egress */
     ingress_socket=bind_to_if(ingress.c_str()); 
@@ -143,8 +143,8 @@ int main(int argc,char** argv) {
   else if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-schedule") && vm.count("downlink-schedule")) {
     ingress=vm["ingress"].as<std::string>();
     egress=vm["egress"].as<std::string>();
-    uplink_schedule=vm["uplink-schedule"].as<std::string>();
-    downlink_schedule=vm["downlink-schedule"].as<std::string>();
+    std::string uplink_schedule=vm["uplink-schedule"].as<std::string>();
+    std::string downlink_schedule=vm["downlink-schedule"].as<std::string>();
     read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
     /* bind to ingress and egress */
     ingress_socket=bind_to_if(ingress.c_str()); 
@@ -153,6 +153,20 @@ int main(int argc,char** argv) {
     std::cout<<"Reading from a schedule here \n";
     downlink=new ScheduleLink(ingress_socket,true,"downlink",downlink_schedule);
     uplink=new ScheduleLink(egress_socket,true,"uplink",uplink_schedule);
+  }
+  else if (vm.count("ingress")&& vm.count("egress") && vm.count("client-mac") && vm.count("uplink-trace") && vm.count("downlink-trace")) {
+    ingress=vm["ingress"].as<std::string>();
+    egress=vm["egress"].as<std::string>();
+    std::string uplink_trace=vm["uplink-trace"].as<std::string>();
+    std::string downlink_trace=vm["downlink-trace"].as<std::string>();
+    read_mac_addr(vm["client-mac"].as<std::string>().c_str(),client_mac);
+    /* bind to ingress and egress */
+    ingress_socket=bind_to_if(ingress.c_str()); 
+    egress_socket=bind_to_if(egress.c_str()); 
+    /* uplink and downlink */
+    std::cout<<"Reading from a trace here \n";
+    downlink=new TraceLink(ingress_socket,true,"downlink",downlink_trace);
+    uplink=new TraceLink(egress_socket,true,"uplink",uplink_trace);
   }
 
   else {

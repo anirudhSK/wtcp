@@ -23,7 +23,7 @@ int Link::enqueue(Payload p) {
 void Link::print_stats(uint64_t ts_now){
   if(output_enable) {
    if(ts_now>last_stat_update+1e9)  {/* 1 second ago */
-          std::cout<<link_name<<" at time " <<ts_now<<" , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)(8*(total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bits per sec "<<"\n";
+          std::cout<<link_name<<" at time " <<ts_now<<" , "<<(ts_now-begin_time)/1.e9<<" seconds since start , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)(8*(total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bits per sec "<<"\n";
           last_stat_update=ts_now;
           last_stat_bytes=total_bytes;
    }
