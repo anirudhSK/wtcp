@@ -79,7 +79,7 @@ TraceLink::PktSchedule::PktSchedule(std::string t_file_name) :
        pkt_stream>>time>>bytes;
 //       std::cout<<"Time in nseconds is "<<time<<"\n"; 
        if( pkt_stream.eof() ) break;
-       pkt_list.push_back(std::tuple<uint64_t,uint32_t>(time,bytes)); /* time in seconds */ 
+       pkt_list.push_back(std::tuple<uint64_t,uint32_t>(time*1e6,bytes)); /* time in ns, trace comes in in ms */ 
      }
      assert(pkt_list.size()>=2);
      current_byte_credit=std::get<1>(pkt_list.front());
