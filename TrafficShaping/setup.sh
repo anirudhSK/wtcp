@@ -5,16 +5,17 @@
 # 54:42:49:07:f3:39   my laptop
 # 44:37:e6:a4:2c:71   Skype-Beta
 # 44:37:e6:a4:16:fe   Skype-Alpha
-if [ $# -lt 5 ]; then
-   echo "Usage : ./setup.sh ingress egress client_mac uplink downlink"
+if [ $# -lt 6 ]; then
+   echo "Usage : ./setup.sh ingress egress client_mac uplink_trace downlink_trace expt_name"
    exit
 fi ;
 
 ingress=$1
 egress=$2
 client_mac=$3
-uplink=$4
-downlink=$5
+uplink_trace=$4
+downlink_trace=$5
+expt=$6
 # put both interfaces in promisc mode. 
 # Otherwise, the ping requests and responses won't come back correctly. 
 set -v
@@ -30,4 +31,4 @@ sudo ethtool --offload  $egress gso off  tso off gro off  # lro off ufo off
 
 # now start the pkt forwarding 
 
-sudo ./traffic-shaping $ingress $egress $client_mac $uplink $downlink
+sudo ./traffic-shaping --ingress $ingress --egress $egress --client-mac $client_mac --uplink-trace $uplink_trace --downlink-trace $downlink_trace > $expt.log & 
