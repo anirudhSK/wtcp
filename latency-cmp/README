@@ -1,0 +1,13 @@
+Scripts to compare Google+ Hangouts, Skype, Facetime, Alfalfa and anything else under the sun.
+
+Objective :
+
+Simultaneously measure bitrate, queue occupancy (indicative of delay) and audio latency.
+
+Axes :
+
+Chat clients : Skype, Hangouts etc
+Video Settings : 4:3 normal, widescreen 1080p HiDef
+
+Input : uplink and downlink trace for 10 minutes, and 10 minute audio file. 
+Output : Simultaneous plots. 
