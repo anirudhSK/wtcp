@@ -9,13 +9,16 @@ LIBS = -lm -lrt -lfftw3 -lboost_program_options
 all: $(executables)
 
 traffic-shaping: traffic-shaping.o $(objects)
-	$(CXX) $(CXXFLAGS) -o $@ $+ $(LIBS)
+	$(CXX) $(EXTRA) $(CXXFLAGS) -o $@ $+ $(LIBS)
 
 udp-flood: udp-flood.o $(objects)
-	$(CXX) $(CXXFLAGS) -o $@ $+ $(LIBS)
+	$(CXX) $(EXTRA) $(CXXFLAGS) -o $@ $+ $(LIBS)
+
+%.o: %.cc %.hh
+	$(CXX) $(EXTRA) $(CXXFLAGS) -c -o $@ $<
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(EXTRA) $(CXXFLAGS) -c -o $@ $<
 
 -include depend
 

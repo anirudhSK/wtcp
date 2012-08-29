@@ -17,7 +17,6 @@
 #include "schedule-link.hh"
 #include "trace-link.hh"
 #include "rate-schedule.hh"
-#define DEBUG
 #include<iostream>
 #include<vector>
 #include <boost/program_options/options_description.hpp>
@@ -199,12 +198,19 @@ int main(int argc,char** argv) {
     downlink->tick();
     /* set timeouts */ 
     struct timespec timeout;
+#ifndef BUSY_WAIT 
     uint64_t next_transmission_delay = std::min( uplink->wait_time_ns(), downlink->wait_time_ns() );
 #ifdef DEBUG
-//    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink->pkt_queue_occupancy<<std::endl<<std::endl;
+    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink->pkt_queue_occupancy<<std::endl<<std::endl;
 #endif
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;    
+#endif
+
+#ifdef BUSY_WAIT
+    timeout.tv_sec=0;
+    timeout.tv_nsec=0;
+#endif
     /* poll both ingress and egress sockets */ 
     ppoll( poll_fds, 2, &timeout, NULL );  
     /* from ingress socket to egress */  
@@ -214,7 +220,7 @@ int main(int argc,char** argv) {
       uint8_t* src_mac=(uint8_t*)(ether_frame +6); 
       if (  check_mac_addr(src_mac,client_mac) )   {
 #ifdef DEBUG
-//           printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
+           printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
 #endif
            uplink->recv(ether_frame,recv_bytes);
       }

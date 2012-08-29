@@ -2,7 +2,6 @@
 #ifndef CBR_LINK_HH
 #define CBR_LINK_HH
 #include "token-bucket.hh"
-#define DEBUG
 class CbrLink: public TokenBucketLink {
    public : 
      CbrLink(int fd,bool output_enable,std::string link_name,double link_rate);

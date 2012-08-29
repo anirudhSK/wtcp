@@ -3,7 +3,6 @@
 #define TRACE_LINK_HH
 #include "link.hh"
 #include <queue>             
-#define DEBUG
 class TraceLink: public Link {
    private : 
     uint64_t last_token_update;    

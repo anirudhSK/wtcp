@@ -4,7 +4,6 @@
 #include "payload.hh"
 #include "rate-schedule.hh"
 #include <queue>             
-#define DEBUG
 class Link {
   private : 
     /* Queues and buffers */

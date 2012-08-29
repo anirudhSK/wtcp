@@ -2,7 +2,6 @@
 #ifndef UNRESTRAINED_LINK_HH
 #define UNRESTRAINED_LINK_HH
 #include "link.hh"
-#define DEBUG
 class UnrestrainedLink: public Link {
    public : 
      UnrestrainedLink(int fd,bool output_enable,std::string link_name);

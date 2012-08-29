@@ -20,14 +20,18 @@ void TokenBucketLink::tick() {
         else  head=pkt_queue.front();
      }
      /* if there are packets wait till tokens accumulate in the future */ 
+   #ifndef BUSY_WAIT
      if(!pkt_queue.empty())  {
       long double requiredTokens = head.size-token_count; 
       uint64_t wait_time_ns = (1.e9*requiredTokens) / (link_rate/8.0) ;  
       next_transmission=wait_time_ns+ts_now;
      }
      else next_transmission = (uint64_t)-1;
+   #endif
    }
+   #ifndef BUSY_WAIT
    else next_transmission = (uint64_t)-1 ;
+   #endif
 }
 
 TokenBucketLink::TokenBucketLink(int fd,bool t_output_enable,std::string t_link_name,double t_link_rate) :
