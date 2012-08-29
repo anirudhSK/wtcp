@@ -5,7 +5,7 @@
 class UnrestrainedLink: public Link {
    public : 
      UnrestrainedLink(int fd,bool output_enable,std::string link_name);
-     virtual int recv(uint8_t* ether_frame,uint16_t size);
+     virtual int recv(uint8_t* ether_frame,uint16_t size,uint64_t rx_timestamp);
      virtual void tick();
 };   
 #endif

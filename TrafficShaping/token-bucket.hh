@@ -10,7 +10,7 @@ class TokenBucketLink: public Link {
  public : 
  
     virtual void tick() ;           /*virtual cause this was taken from Link*/
-    virtual int recv(uint8_t* ether_frame,uint16_t size) ; /* Same here */
+    virtual int recv(uint8_t* ether_frame,uint16_t size,uint64_t rx_timestamp) ; /* Same here */
     
     virtual void update_token_count(uint64_t current_ts,long double drained)=0;/* defined in the derived class depending on how it chooses to update count */ 
     TokenBucketLink(int fd,bool t_output_enable,std::string t_link_name,double t_link_rate);

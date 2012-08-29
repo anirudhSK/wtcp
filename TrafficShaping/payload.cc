@@ -15,8 +15,10 @@ bool Payload::operator==( const Payload & other ) const
 	  && size == other.size);
 }
 
-Payload::Payload(uint8_t* ether_frame,uint16_t length) 
+Payload::Payload(uint8_t* ether_frame,uint16_t length,uint64_t t_rx_ts) 
    : pkt_data(ether_frame),
-     size(length) {
+     size(length),
+     rx_ts(t_rx_ts) ,
+     sent_ts(0) {
 
 }

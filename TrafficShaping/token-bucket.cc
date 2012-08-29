@@ -1,6 +1,6 @@
 #include"token-bucket.hh"
-int TokenBucketLink::recv(uint8_t* ether_frame,uint16_t size) {
-     Payload p(ether_frame,size); /* */ 
+int TokenBucketLink::recv(uint8_t* ether_frame,uint16_t size,uint64_t rx_ts) {
+     Payload p(ether_frame,size,rx_ts); /* */ 
      return enqueue(p); 
 }
 
@@ -12,9 +12,10 @@ void TokenBucketLink::tick() {
    if(!pkt_queue.empty()) { 
      Payload head=pkt_queue.front();
      while(token_count>=head.size && head.size > 0) {
-        send_pkt(head);
+        ts_now=send_pkt(head);
         dequeue();
-        ts_now=Link::timestamp();  
+        head.sent_ts=ts_now; // get sent_ts
+        latency_estimator.add_latency_sample(head);
         update_token_count(ts_now,head.size);
         if(pkt_queue.empty()) head.size=-1;
         else  head=pkt_queue.front();

@@ -40,19 +40,47 @@ void read_mac_addr(const char* mac_str,uint8_t* client_mac) {
                                                 (short unsigned int *)&client_mac[5]);
 }
 
-int recv_packet(int socket,uint8_t* frame) {
-     /* recv_packet with all the error handling */ 
-     int recv_bytes;
-     while ((recv_bytes = recv (socket, frame, IP_MAXPACKET, MSG_TRUNC)) < 0) {
-          if (errno == EINTR) {
-            memset (frame, 0, IP_MAXPACKET);
-            continue;  // Something weird happened, but let's try again.
-          } else {
-            perror ("recv() failed:");
-            exit (EXIT_FAILURE);
-          }
-      }
-     return recv_bytes;
+int recv_packet(int socket,uint8_t* frame,uint64_t *rx_ts) {
+     /* data structure to receive timestamp, source address, and payload */
+     struct msghdr header;
+     struct iovec msg_iovec;
+   
+     const int BUF_SIZE = 2048;
+   
+     char msg_control[ BUF_SIZE ];
+     header.msg_name = NULL;
+     header.msg_namelen = 0;
+     msg_iovec.iov_base = frame;
+     msg_iovec.iov_len = BUF_SIZE;
+     header.msg_iov = &msg_iovec;
+     header.msg_iovlen = 1;
+     header.msg_control = msg_control;
+     header.msg_controllen = BUF_SIZE;
+     header.msg_flags = 0;
+   
+     ssize_t received_len = recvmsg( socket, &header, 0 );
+     if ( received_len < 0 ) {
+       perror( "recvmsg" );
+       exit( 1 );
+     }
+   
+     if ( received_len > BUF_SIZE ) {
+       fprintf( stderr, "Received oversize datagram (size %d) and limit is %d\n",
+       static_cast<int>( received_len ), BUF_SIZE );
+       exit( 1 );
+     }
+   
+     /* verify presence of timestamp */
+     struct cmsghdr *ts_hdr = CMSG_FIRSTHDR( &header );
+     assert( ts_hdr );
+     assert( ts_hdr->cmsg_level == SOL_SOCKET );
+     assert( ts_hdr->cmsg_type == SO_TIMESTAMPNS );
+
+     /* recv packet and time stamp */
+     struct timespec ts=*(struct timespec *)CMSG_DATA( ts_hdr );
+     *rx_ts=1.e9*ts.tv_sec+ts.tv_nsec;
+
+     return received_len;
 }
 
 int bind_to_if(const char* if_name) {
@@ -87,6 +115,13 @@ int bind_to_if(const char* if_name) {
     perror("Error binding raw socket to interface\n");
     exit(-1);
   }
+  /* Set timestamp option for socket */
+  int ts_opt = 1;
+  if ( setsockopt( socket_fd, SOL_SOCKET, SO_TIMESTAMPNS, &ts_opt, sizeof( ts_opt ) )
+       < 0 ) {
+    perror( "setsockopt" );
+    exit( 1 );
+  }
  return socket_fd;
 }
 
@@ -101,6 +136,8 @@ int main(int argc,char** argv) {
   /* variable decl */
   int ingress_socket,egress_socket,recv_bytes;
 
+  /* log kernel timestamp */
+  uint64_t rx_ts;
   /* declare the supported options. */
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -215,19 +252,19 @@ int main(int argc,char** argv) {
     ppoll( poll_fds, 2, &timeout, NULL );  
     /* from ingress socket to egress */  
     if ( poll_fds[ 0 ].revents & POLLIN ) {
-      recv_bytes = recv_packet(ingress_socket, ether_frame) ; 
+      recv_bytes = recv_packet(ingress_socket, ether_frame,&rx_ts) ; 
       /* parse src mac */
       uint8_t* src_mac=(uint8_t*)(ether_frame +6); 
       if (  check_mac_addr(src_mac,client_mac) )   {
 #ifdef DEBUG
            printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
 #endif
-           uplink->recv(ether_frame,recv_bytes);
+           uplink->recv(ether_frame,recv_bytes,rx_ts);
       }
     }
     /* egress to ingress */ 
     else if ( poll_fds[ 1 ].revents & POLLIN ) {
-      recv_bytes = recv_packet(egress_socket, ether_frame)  ;
+      recv_bytes = recv_packet(egress_socket, ether_frame,&rx_ts)  ;
       /* parse dst mac */
       uint8_t* dst_mac=(uint8_t*)(ether_frame);
       if ( check_mac_addr(dst_mac,client_mac) || check_mac_addr(dst_mac,bcast) )   {
@@ -235,7 +272,7 @@ int main(int argc,char** argv) {
           if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
           else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
 #endif
-          downlink->recv(ether_frame,recv_bytes);
+          downlink->recv(ether_frame,recv_bytes,rx_ts);
       }
     }
   }

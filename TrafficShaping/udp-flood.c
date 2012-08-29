@@ -25,7 +25,7 @@ void my_handler (int sig)
  struct timeval ts;
  gettimeofday(&ts,NULL);
  uint64_t now=ts.tv_sec*1e6+ts.tv_usec;
- printf("Transfer rate is %f MBytes per sec \n", (float)total_count/(float)(now-ts_start));
+ printf("Transfer rate is %f mbps \n", 8*(float)total_count/(float)(now-ts_start));
  exit(1);
 }
 int main( int argc, char *argv[] )
@@ -55,7 +55,7 @@ int main( int argc, char *argv[] )
     perror( "setsockopt SO_BINDTODEVICE" );
     exit( 1 );
   }
-
+//
   /* random address to flood to */ 
   addr.sin_family=AF_INET;
   addr.sin_port=htons(9999);

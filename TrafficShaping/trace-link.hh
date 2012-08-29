@@ -26,7 +26,7 @@ class TraceLink: public Link {
  
     virtual void tick() ;          
     /*virtual cause this was taken from Link*/
-    virtual int recv(uint8_t* ether_frame,uint16_t size) ;
+    virtual int recv(uint8_t* ether_frame,uint16_t size,uint64_t rx_timestamp) ;
     /* Same here */
     void update_token_count(uint64_t current_ts,long double drained); 
      TraceLink(int fd,bool output_enable,std::string link_name,std::string trace_file);

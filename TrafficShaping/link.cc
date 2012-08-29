@@ -9,7 +9,7 @@ int Link::dequeue() {
   pkt_queue_occupancy--;
   byte_queue_occupancy=byte_queue_occupancy-p.size; 
   pkt_queue.pop();
-  return 0; 
+  return 0;
 }
 
 int Link::enqueue(Payload p) {
@@ -23,20 +23,23 @@ int Link::enqueue(Payload p) {
 void Link::print_stats(uint64_t ts_now){
   if(output_enable) {
    if(ts_now>last_stat_update+1e9)  {/* 1 second ago */
-          std::cout<<link_name<<" at time " <<ts_now<<" , "<<(ts_now-begin_time)/1.e9<<" seconds since start , queue is " <<byte_queue_occupancy<<" , "<<" @ "<<(float)(8*(total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update)<<" bits per sec "<<"\n";
+          double bitrate=(double)(8*(total_bytes-last_stat_bytes)*1e9)/(ts_now-last_stat_update);
+          std::cout<<link_name<<" at time " <<ts_now<<" , "<<(ts_now-begin_time)/1.e9<<" seconds since start , queue in seconds is " <<(byte_queue_occupancy*8.0)/bitrate<<" , "<<" @ "<<bitrate<<" bits per sec "<<" queue latency estimate is "<<latency_estimator.get_latency(ts_now)<<" seconds \n";
           last_stat_update=ts_now;
           last_stat_bytes=total_bytes;
    }
   }
 }
 
-void Link::send_pkt(Payload p)  {
+uint64_t Link::send_pkt(Payload p)  {
    int sent_bytes;
    if ((sent_bytes = send(link_socket,p.pkt_data,p.size,MSG_TRUNC))<0) {
                perror("send() on egress failed:");
                exit(EXIT_FAILURE);
    }
+   uint64_t sent_ts=Link::timestamp();
    total_bytes=total_bytes+sent_bytes;
+   return sent_ts;
 }
 
 uint64_t Link::wait_time_ns( void ) const
@@ -71,6 +74,7 @@ Link::Link(int fd,bool t_output_enable,std::string t_link_name)
    pkt_queue(),
    next_transmission(-1),
    begin_time(Link::timestamp()),
+   latency_estimator(0,1000),
    pkt_queue_occupancy(0) {
 
 }

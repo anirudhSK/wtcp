@@ -3,6 +3,7 @@
 #define LINK_HH
 #include "payload.hh"
 #include "rate-schedule.hh"
+#include "latency-estimate.hh"
 #include <queue>             
 class Link {
   private : 
@@ -24,19 +25,21 @@ class Link {
     uint64_t next_transmission;
     uint64_t begin_time;            /* time stamp when link went "on" */ 
 
+    /* latency monitoring */ 
+    LatencyEstimate latency_estimator ;
  public : 
     uint32_t pkt_queue_occupancy ;  /* # packets in queue */
  
     Link(int fd,bool t_output_enable,std::string t_link_name);
     int enqueue(Payload p); 
     int dequeue(); 
-    void send_pkt(Payload p);
+    uint64_t send_pkt(Payload p); /* returns sent time stamp */
     static uint64_t timestamp(void) ; 
     uint64_t wait_time_ns( void ) const ;
     void print_stats(uint64_t ts_now); 
  
     virtual void tick() = 0;
-    virtual int recv(uint8_t* ether_frame,uint16_t size) = 0;
+    virtual int recv(uint8_t* ether_frame,uint16_t size,uint64_t rx_timestamp) = 0;
     virtual ~Link();
 };   
 #endif
