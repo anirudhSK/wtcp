@@ -53,22 +53,52 @@ def run_low_pass(stream,kernel) :
     # ie start returning the signal from the delay_in_samples^{th} signal onwards as the correct signal. Pad enough zeros at the end to make it the same size.
     return numpy.concatenate((filtered_signal[delay_in_samples:],numpy.array([0]*delay_in_samples)))
 
+def cos_memoize(centre_freq,length,sample_rate) :
+     if centre_freq in cos_memoize.stored_samples :
+          current_length=len(cos_memoize.stored_samples[centre_freq]);
+          if(length<=current_length) :
+              return cos_memoize.stored_samples[centre_freq][0:length];
+          else :
+              nvalues=range(current_length,length);
+              cos_memoize.stored_samples[centre_freq]=numpy.concatenate((cos_memoize.stored_samples[centre_freq][0:current_length],numpy.cos( ((2* numpy.pi * centre_freq)/sample_rate) * numpy.array(nvalues))))
+              return cos_memoize.stored_samples[centre_freq][0:length];
+     else : 
+          current_length=0;
+          nvalues=range(current_length,length);
+          cos_memoize.stored_samples[centre_freq]=numpy.cos( ((2* numpy.pi * centre_freq)/sample_rate) * numpy.array(nvalues))
+          return cos_memoize.stored_samples[centre_freq][0:length];
+cos_memoize.stored_samples=dict()
+
+def sin_memoize(centre_freq,length,sample_rate) :
+     if centre_freq in sin_memoize.stored_samples :
+          current_length=len(sin_memoize.stored_samples[centre_freq]);
+          if(length<=current_length) :
+              return sin_memoize.stored_samples[centre_freq][0:length];
+          else :
+              sin_memoize.stored_samples[centre_freq]=numpy.concatenate((sin_memoize.stored_samples[centre_freq][0:current_length],numpy.sin( ((2* numpy.pi * centre_freq)/sample_rate) * numpy.arange(current_length,length))))
+              return sin_memoize.stored_samples[centre_freq][0:length];
+     else : 
+          current_length=0;
+          sin_memoize.stored_samples[centre_freq]=numpy.sin( ((2* numpy.pi * centre_freq)/sample_rate) * numpy.arange(current_length,length))
+          return sin_memoize.stored_samples[centre_freq][0:length];
+sin_memoize.stored_samples=dict()
+
 def quad_demod(stream,centre_freq,bandwidth,sample_rate,amplitude) :
       ''' 
           quadrature demodulation of received signal 
       '''
       stream_length=len(stream); 
-      nvalues=range(0,stream_length);
+#      nvalues=range(0,stream_length);
       
       # lpf common to I and Q
       lpf=low_pass_filter(50.0,50.0,sample_rate);
       # modulate with cosine and lpf it
-      cosine=numpy.cos( ((2* numpy.pi * centre_freq)/sample_rate) * numpy.array(nvalues));
+      cosine=cos_memoize(centre_freq,stream_length,sample_rate);
       i_stream=cosine*stream ;
       i_stream_lpf=run_low_pass(i_stream,lpf);
 
       # modulate with sine and lpf it
-      sine=numpy.sin( ((2* numpy.pi * centre_freq)/sample_rate) * numpy.array(nvalues));
+      sine=sin_memoize(centre_freq,stream_length,sample_rate);
       q_stream=sine*stream ;
       q_stream_lpf=run_low_pass(q_stream,lpf); 
 
@@ -79,10 +109,7 @@ def quad_demod(stream,centre_freq,bandwidth,sample_rate,amplitude) :
       slice_threshold=(amplitude/4); # / 2 for the original 1/2 while squaring, Another /2 for detecting the crossing. 
 #      print "Slice threshold is",slice_threshold
       # slice the signal 
-      slice_stream=numpy.array([0]*len(abs_stream)); 
-      for i in range(0,len(slice_stream)): 
-          slice_stream[i]=1 if (abs_stream[i]>slice_threshold) else 0;
-
+      slice_stream=(abs_stream>slice_threshold)*1;
       # find start of pulse 
       # plot slice_stream 
       ##subplot(211)
