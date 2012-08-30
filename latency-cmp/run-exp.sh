@@ -27,17 +27,18 @@ audio_file=$5              # 10 min audio pattern
 audio_schedule=$6          # frequency schedule of the pattern
 callee_mac=$7              # callee's mac
 expt=$8                    # expt name 
-if [ $# -lt 8 ] ; 
+enable_audio=$9            # enable audio measurements or not 
+if [ $# -lt 9 ] ; 
 then
-   echo "Usage : ./run-exp.sh ingress egress uplink_trace downlink_trace audio_file audio_schedule callee_mac expt_name"
+   echo "Usage : ./run-exp.sh ingress egress uplink_trace downlink_trace audio_file audio_schedule callee_mac expt_name enable_audio "
    exit ; 
 fi
 # Step 1:
 echo "Make sure the video and the audio are all setup .
       The caller must have an unrestrained conn to the Internet.
       The callee must be connected through this machine to the ingress $ingress.
-      The MAC address supplied $callee_mac should be the callee's MAC.
-      The egress $egress must be connected to the Internet.
+      The MAC address supplied here: $callee_mac should be the callee's MAC.
+      The egress $egress on the shaping machine must be connected to the Internet.
       Do all the reqd sound checks. 
       Press enter to continue once done ..."
 read
@@ -53,39 +54,50 @@ set -x
 set +v
 set +x
  # Step 4: wait till the call has been initiated and webcams have been setup, then start recording 
-echo "Traffic shaping is set up. 
-      Expt will start in 10 minutes. 
-      Please do whatever you need to in 10 minutes.
-      This includes call initiation and web cam setup
-      Press enter if done "
+if [ $enable_audio -eq 1 ] ; then
+  echo "Traffic shaping is set up. 
+        Audio Expt will start in 10 minutes. 
+        Please do whatever you need to in 10 minutes.
+        This includes call initiation and web cam setup
+        Press enter if done earlier "
+  read -t 600
+else 
+  echo "Traffic shaping is set up 
+        Set up webcams, and do whatever you want 
+        Press enter when done with expt "
+  read
+fi;
 
-read -t 600  
-
-arecord -t wav -f cd $expt.wav &
-date +%s > /tmp/audio_stats.txt
-export start_time=`head -n 1 /tmp/audio_stats.txt`
-sleep 1                    # wait till you can play the file
-
-# Step 5 : Send audio pattern  
-aplay $audio_file          
-killall -s9 arecord
-
-# Step 6: Process it to get latencies 
-/usr/bin/time ./recv-pulse-train.sh $expt.wav $audio_schedule 44100 0.1 1 0.3 0.25 >> /tmp/audio_stats.txt 
-python convert-into-unix.py /tmp/audio_stats.txt $audio_schedule > ./audio_unix.txt  
-grep "uplink at time" $expt.logs > ./uplink.logs
-grep "downlink at time" $expt.logs > ./downlink.logs
-export fin_time=`expr $start_time '+' 900` # give it 15 minutes time 
-
-
-# Step 7 : Plot quantities one on top of the other using multiplot 
-gnuplot -p side-by-side.p
-
-# Other stuff : Save the files for archival 
-mv uplink.logs $expt.uplink
-mv downlink.logs $expt.downlink
-mv audio_unix.txt $expt.audio
-
+if [ $enable_audio -eq 1 ]; then  
+  arecord -t wav -f cd $expt.wav &
+  date +%s > /tmp/audio_stats.txt
+  export start_time=`head -n 1 /tmp/audio_stats.txt`
+  sleep 1                    # wait till you can play the file
+  
+  # Step 5 : Send audio pattern  
+  aplay $audio_file          
+  killall -s9 arecord
+  
+  # Step 6: Process it to get latencies 
+  /usr/bin/time ./recv-pulse-train.sh $expt.wav $audio_schedule 44100 0.1 1 0.3 0.25 >> /tmp/audio_stats.txt 
+  python convert-into-unix.py /tmp/audio_stats.txt $audio_schedule > ./audio_unix.txt  
+  grep "uplink at time" $expt.logs > ./uplink.logs
+  grep "downlink at time" $expt.logs > ./downlink.logs
+  export fin_time=`expr $start_time '+' 900` # give it 15 minutes time 
+  
+  
+  # Step 7 : Plot quantities one on top of the other using multiplot 
+  gnuplot -p side-by-side.p
+  
+  # Other stuff : Save the files for archival 
+  mv uplink.logs $expt.uplink
+  mv downlink.logs $expt.downlink
+  mv audio_unix.txt $expt.audio
+fi
 # remove the 20 ms delay
 sudo tc qdisc del dev $ingress root netem delay 20ms
 sudo tc qdisc del dev $egress root netem delay 20ms
+
+echo "Cleaning up before terminating"
+sudo killall -s9 traffic-shaping arecord aplay python setup.sh recv-pulse-train.sh
+

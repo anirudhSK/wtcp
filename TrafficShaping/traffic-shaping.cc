@@ -275,6 +275,7 @@ int main(int argc,char** argv) {
           downlink->recv(ether_frame,recv_bytes,rx_ts);
       }
     }
+    std::cout.flush();
   }
   return 0;
 }
