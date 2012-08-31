@@ -44,7 +44,13 @@ uint64_t Link::send_pkt(Payload p)  {
 
 uint64_t Link::wait_time_ns( void ) const
 {
-  return next_transmission - Link::timestamp();
+  uint64_t current_ts=Link::timestamp();
+  if(next_transmission<current_ts)  /* time has already passed */ {
+   return 0;
+  }
+  else {                            /* wont return null value */
+   return next_transmission - current_ts;
+  }
 }
 
 uint64_t Link::timestamp( void )
