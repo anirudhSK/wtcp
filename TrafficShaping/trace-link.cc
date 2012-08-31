@@ -82,10 +82,21 @@ TraceLink::PktSchedule::PktSchedule(std::string t_file_name) :
          std::cout<<"Trace file "<<file_name<<" does not exist ... exiting \n";
          exit(-5);
      } 
+     uint64_t prev_time=-1;
      while (true) {
        pkt_stream>>time>>bytes;
        if( pkt_stream.eof() ) break;
-       pkt_list.push_back(std::tuple<uint64_t,uint32_t>(time*1e6,bytes)); /* time in ns, trace comes in in ms */ 
+       if(time==prev_time) {
+         std::tuple<uint64_t,uint32_t> front=pkt_list.back();
+         uint32_t stored_credit=std::get<1>(front);
+         uint32_t new_credit=stored_credit+bytes;
+         pkt_list.pop_back(); /* remove old credit */
+         pkt_list.push_back(std::tuple<uint64_t,uint32_t>(time*1e6,new_credit)); /* push agg. credit */ 
+       }
+       else {
+        pkt_list.push_back(std::tuple<uint64_t,uint32_t>(time*1e6,bytes)); /* time in ns, trace comes in in ms */ 
+       }
+       prev_time=time;
      }
      assert(pkt_list.size()>=2);
      current_byte_credit=std::get<1>(pkt_list.front());
