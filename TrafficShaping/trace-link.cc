@@ -40,9 +40,9 @@ void TraceLink::tick() {
 void TraceLink::update_token_count(uint64_t current_ts,long double drain) {
      /* check if you see a more recent line */
      uint32_t current_byte_credit=0 ; /* If there is a new point in the file , then update this */ 
-     if((current_ts-begin_time)>=pkt_schedule.next_timestamp) {  
+     while((current_ts-begin_time)>=pkt_schedule.next_timestamp) {  
         assert((!pkt_schedule.pkt_list.empty())); 
-        current_byte_credit=std::get<1>(pkt_schedule.pkt_list.front()); 
+        current_byte_credit += std::get<1>(pkt_schedule.pkt_list.front()); 
       #ifdef DEBUG
         std::cout<<link_name<<" Added credit of "<<current_byte_credit<<" bytes at time "<<current_ts<<" \n";
       #endif
