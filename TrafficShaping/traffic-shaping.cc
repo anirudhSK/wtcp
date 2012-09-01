@@ -23,6 +23,9 @@
 #include <boost/program_options/option.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <sys/signalfd.h>
+#include <signal.h>
+#include <sys/time.h>
 namespace po = boost::program_options;
 uint8_t bcast[6]={0xff,0xff,0xff,0xff,0xff,0xff};
 
@@ -221,13 +224,40 @@ int main(int argc,char** argv) {
   /* Zero out all bytes */
   memset (ether_frame, 0, IP_MAXPACKET);
 
+  /* 1000Hz timer */
+  /* UNIX signal data structures */
+  sigset_t mask;
+  int sfd;
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGALRM);
+
+  /* 1ms timer */ 
+  struct itimerval it_val,old_val;
+  it_val.it_interval.tv_sec=0;
+  it_val.it_interval.tv_usec=1000;
+  it_val.it_value.tv_sec=0;
+  it_val.it_value.tv_usec=1000;
+  setitimer(ITIMER_REAL,&it_val,&old_val);
+
+  /* block signals so that they aren't handled by default*/
+  if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+      perror("sigprocmask");
+
+  /* create signal fd */ 
+  sfd = signalfd(-1, &mask, 0);
+  if (sfd == -1)
+      perror("signalfd");
+
   /* create a poll structure for ingress and egress */
-  struct pollfd poll_fds[ 2 ];
+  struct pollfd poll_fds[ 3 ];
   poll_fds[ 0 ].fd = ingress_socket;
   poll_fds[ 0 ].events = POLLIN;
 
   poll_fds[ 1 ].fd = egress_socket;
   poll_fds[ 1 ].events = POLLIN;
+
+  poll_fds[ 2 ].fd = sfd;
+  poll_fds[ 2 ].events = POLLIN;
 
   struct timespec timeout;
   timeout.tv_sec=0;
@@ -235,10 +265,20 @@ int main(int argc,char** argv) {
 
   while(1) {
     /* send packets if possible */ 
-    uplink->tick(); 
-    downlink->tick();
     /* poll both ingress and egress sockets */ 
-    ppoll( poll_fds, 2, &timeout, NULL );  
+    poll( poll_fds, 3, 0 ); 
+    /* First poll timer */
+    if ( poll_fds[ 2 ].revents & POLLIN ) {
+           uint8_t buf[1000];
+           if( (read(poll_fds [ 2 ].fd,buf,sizeof(buf))) < 0) {
+             perror("signalfd read \n");
+             exit(-1);
+           }
+         /* send packets if possible */ 
+       uplink->tick(); 
+       downlink->tick();
+    }
+
     /* from ingress socket to egress */  
     if ( poll_fds[ 0 ].revents & POLLIN ) {
       recv_bytes = recv_packet(ingress_socket, ether_frame,&rx_ts) ; 
