@@ -229,25 +229,14 @@ int main(int argc,char** argv) {
   poll_fds[ 1 ].fd = egress_socket;
   poll_fds[ 1 ].events = POLLIN;
 
+  struct timespec timeout;
+  timeout.tv_sec=0;
+  timeout.tv_nsec=0;
+
   while(1) {
     /* send packets if possible */ 
     uplink->tick(); 
     downlink->tick();
-    /* set timeouts */ 
-    struct timespec timeout;
-#ifndef BUSY_WAIT 
-    uint64_t next_transmission_delay = std::min( uplink->wait_time_ns(), downlink->wait_time_ns() );
-#ifdef DEBUG
-    std::cout<<"Waiting "<<next_transmission_delay<<" ns in ppoll queues at uplink : "<<uplink->pkt_queue_occupancy<<std::endl<<std::endl;
-#endif
-    timeout.tv_sec = next_transmission_delay / 1000000000;
-    timeout.tv_nsec = next_transmission_delay % 1000000000;    
-#endif
-
-#ifdef BUSY_WAIT
-    timeout.tv_sec=0;
-    timeout.tv_nsec=0;
-#endif
     /* poll both ingress and egress sockets */ 
     ppoll( poll_fds, 2, &timeout, NULL );  
     /* from ingress socket to egress */  
@@ -263,7 +252,7 @@ int main(int argc,char** argv) {
       }
     }
     /* egress to ingress */ 
-    else if ( poll_fds[ 1 ].revents & POLLIN ) {
+    if ( poll_fds[ 1 ].revents & POLLIN ) {
       recv_bytes = recv_packet(egress_socket, ether_frame,&rx_ts)  ;
       /* parse dst mac */
       uint8_t* dst_mac=(uint8_t*)(ether_frame);
