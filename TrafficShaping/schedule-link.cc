@@ -31,6 +31,5 @@ void ScheduleLink::update_token_count(uint64_t current_ts,long double drain) {
      /* new token count in bytes */
      last_token_update=current_ts;
      /* change the last_token_update variable */ 
-     token_count=(new_token_count > BURST_SIZE) ? BURST_SIZE : new_token_count;
-     /* limit token_count to BURST_SIZE */
+     token_count=new_token_count;
 }

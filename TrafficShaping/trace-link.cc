@@ -19,29 +19,22 @@ void TraceLink::tick() {
    Link::print_stats(ts_now);
    update_token_count(ts_now,0);
    /* Can I send pkts right away ? */ 
-   if(!pkt_queue.empty()) { 
+   if(!pkt_queue.empty()) {
      Payload head=pkt_queue.front();
      while(token_count>=head.size && head.size > 0) {
         ts_now=send_pkt(head);
         dequeue();
         head.sent_ts=ts_now; // get sent_ts
         latency_estimator.add_latency_sample(head);        
-        update_token_count(ts_now,head.size);
+        token_count=token_count-head.size;
         if(pkt_queue.empty()) head.size=-1;
         else  head=pkt_queue.front();
      }
      /* if there are packets wait till tokens accumulate in the future */ 
-   #ifndef BUSY_WAIT
-     if(!pkt_queue.empty())  {
-      /* calc next_transmission when you acc. sufficient credit */
-      next_transmission=calc_next_time(head.size);
+     if(pkt_queue.empty())  {
+       token_count=0;
      }
-     else next_transmission = (uint64_t)-1;
-   #endif
    }
-   #ifndef BUSY_WAIT
-   else next_transmission = (uint64_t)-1 ;
-   #endif
 }
 
 void TraceLink::update_token_count(uint64_t current_ts,long double drain) {
@@ -66,7 +59,7 @@ void TraceLink::update_token_count(uint64_t current_ts,long double drain) {
      /* new token count in bytes */
      long double new_token_count=token_count+current_byte_credit-drain; 
      last_token_update=current_ts;
-     token_count=(new_token_count > BURST_SIZE) ? BURST_SIZE : new_token_count;
+     token_count=(new_token_count);
 }
 
 TraceLink::PktSchedule::PktSchedule(std::string t_file_name) :
