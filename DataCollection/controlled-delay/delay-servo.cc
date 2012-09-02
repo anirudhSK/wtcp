@@ -5,61 +5,83 @@
 
 #include "delay-servo.hh"
 
-DelayServo::DelayServo( const std::string & s_name, const Socket & s_sender,
-			const Socket::Address & s_target )
+DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_sender,const Socket::Address & s_target, uint32_t local_id )
   : _name( s_name ), 
     _sender( s_sender ),
     _target( s_target ),
     _rate_estimator( 5.0, 1000 ),
     _packets_sent( 0 ),
     _packets_received( 0 ),
-    _unique_id( (int) getpid() ^ rand() ),
+    _unique_id( local_id ),
     _next_transmission( Socket::timestamp() ),
     _last_transmission( _next_transmission ),
     _hist()
 {
 }
 
-int DelayServo::wait_time_ns( void ) const
+DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket & s_receiver, const Socket::Address & s_source, uint32_t remote_id )
+  : _name( s_name ), 
+    _receiver( s_receiver ),
+    _source( s_source ),
+    _rate_estimator( 5.0, 1000 ),
+    _packets_sent( 0 ),
+    _packets_received( 0 ),
+    _unique_id( remote_id ),
+    _next_transmission( Socket::timestamp() ),
+    _last_transmission( _next_transmission ),
+    _last_feedback(0),
+    _hist()
+{
+}
+int DelayServoSender::wait_time_ns( void ) const
 {
   return _next_transmission - Socket::timestamp();
 }
-
-void DelayServo::recv( void )
+int DelayServoReceiver::wait_time_ns( void ) const
+{
+  return _next_transmission - Socket::timestamp();
+}
+void DelayServoReceiver::recv( void )
 {
   /* Is packet a data packet or an ACK packet ? */
-  Socket::Packet incoming( _sender.recv() );
+  Socket::Packet incoming( _receiver.recv() );
   Payload *contents = (Payload *) incoming.payload.data();
   contents->recv_timestamp = incoming.timestamp;
 
-  /* Log only data packets */
-  if(data) {
-    // log packet 
-    // send ACK right away. 
-  }
-  else if(ack) {
-    /* Update controlled delay estimate, Make sure to echo sender ID on ACK */ 
-   if ( contents->sender_id == _unique_id ) {
+   /* Update controlled delay estimate, 
+      Make sure to echo sender ID on ACK */
+  double current_rate=0; 
+  if ( contents->sender_id == _unique_id ) {
+   /* TODO : Get _unique_id_ from somewhere. Maybe in first pkt through a 3-way handshake ? */
    _rate_estimator.add_packet( *contents );
-    _hist.packet_received( *contents );
-    _packets_received++;
-    double loss_rate = (double) _hist.num_lost() / (double) _packets_sent;
-    printf( "%s seq = %d delay = %f recvrate = %f queueest = %f outstanding = %d Mbps = %f lost = %.5f%% arrivemilli = %ld\n",
-	    _name.c_str(),
-	    contents->sequence_number,
-	    (double) (contents->recv_timestamp - contents->sent_timestamp) / 1.0e9,
-	    _rate_estimator.get_rate(),
-	    (double) _hist.num_outstanding() / _rate_estimator.get_rate(),
-	    _hist.num_outstanding(),
-	    _rate_estimator.get_rate() * PACKET_SIZE * 8.0 / 1.0e6,
-	    loss_rate * 100,
-	    contents->recv_timestamp / 1000000 );
-    }
+   current_rate=_rate_estimator.get_rate();
+   _hist.packet_received( *contents , current_rate );
+   double loss_rate = (double) _hist.num_lost() / (double) _hist.max_rx_seq_no();  
+   printf( "%s seq = %d delay = %f recvrate = %f queueest = %f outstanding = %d Mbps = %f lost = %.5f%% arrivemilli = %ld\n",
+           _name.c_str(),
+           contents->sequence_number,
+           (double) (contents->recv_timestamp - contents->sent_timestamp) / 1.0e9,
+           _rate_estimator.get_rate(),
+           (double) _hist.num_outstanding() / _rate_estimator.get_rate(),
+           _hist.num_outstanding(),
+           _rate_estimator.get_rate() * PACKET_SIZE * 8.0 / 1.0e6,
+           loss_rate * 100,
+           contents->recv_timestamp / 1000000 );
+  }
 
+  /* Make a feedback packet with num_outstanding & current_rate 
+     Send once in 20 ms */ 
+
+  if ( Socket::timestamp() > _last_feedback + 1.e6*20 ) /* 20 ms*/ {
+       Feedback feedback;
+       feedback.num_outstanding=_hist.num_outstanding(); 
+       feedback.current_rate=current_rate;
+       feedback.sender_id = _unique_id;
+       _receiver.send(Socket::Packet(_source, feedback.str(20)));
   }
 }
 
-void DelayServo::tick( void )
+void DelayServoSender::tick( void )
 {
   uint64_t now = Socket::timestamp();
 
@@ -76,9 +98,8 @@ void DelayServo::tick( void )
   double queue_duration_difference = QUEUE_DURATION_TARGET - queue_duration_estimate;
 
   double outgoing_packets_needed = queue_duration_difference * _rate_estimator.get_rate() + STEERING_TIME * _rate_estimator.get_rate();
-  double outgoing_packet_rate = std::max( MINIMUM_RATE,
-					  outgoing_packets_needed / STEERING_TIME ); /* packets per second */
-
+  double outgoing_packet_rate=MINIMUM_RATE; /* TODO: Weird C++ issue. Don't know why it doesn't compile */ 
+  outgoing_packet_rate = std::max( outgoing_packet_rate,outgoing_packets_needed / STEERING_TIME ); /* packets per second */
   uint64_t interpacket_delay = 1.e9 / outgoing_packet_rate;
 
   assert( outgoing_packet_rate > 0 );
@@ -92,7 +113,6 @@ void DelayServo::tick( void )
     outgoing.sent_timestamp = Socket::timestamp();
     outgoing.sender_id = _unique_id;
     _sender.send( Socket::Packet( _target, outgoing.str( PACKET_SIZE ) ) );
-    _hist.packet_sent( outgoing );
     _last_transmission = outgoing.sent_timestamp;
   }
 

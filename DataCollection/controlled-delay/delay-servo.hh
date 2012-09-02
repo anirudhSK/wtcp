@@ -6,15 +6,14 @@
 #include "socket.hh"
 #include "rate-estimate.hh"
 #include "history.hh"
-
-class DelayServo {
+#include "feedback.hh"
+class DelayServoSender {
 private:
 
   const std::string _name;
 
   const Socket & _sender;
   const Socket::Address & _target;
-  const Socket & _receiver;
 
   RateEstimate _rate_estimator;
 
@@ -33,14 +32,44 @@ private:
 
 public:
 
-  DelayServo( const std::string & s_name, const Socket & s_sender,
-	      const Socket::Address & s_target, const Socket & s_receiver );
+  DelayServoSender( const std::string & s_name, const Socket & s_sender, const Socket::Address & s_target,uint32_t sender_id );
 
   void tick( void );
+
+  int wait_time_ns( void ) const;
+  int fd( void ) const { return _sender.get_sock(); }
+};
+
+class DelayServoReceiver {
+private:
+
+  const std::string _name;
+
+  const Socket & _receiver;
+  const Socket::Address & _source;
+
+  RateEstimate _rate_estimator;
+
+  unsigned int _packets_sent, _packets_received;
+
+  static const unsigned int PACKET_SIZE = 1400; /* bytes */
+  static constexpr double QUEUE_DURATION_TARGET = 1.0; /* seconds */
+  static constexpr double STEERING_TIME = 0.05; /* seconds */
+  static constexpr double MINIMUM_RATE = 5.0; /* pkts per second */
+
+  int _unique_id;
+
+  uint64_t _next_transmission, _last_transmission,_last_feedback;
+
+  History _hist;
+
+public:
+
+  DelayServoReceiver( const std::string & s_name, const Socket & s_receiver,const Socket::Address & s_source , uint32_t remoted_id );
+
   void recv( void );
 
   int wait_time_ns( void ) const;
   int fd( void ) const { return _receiver.get_sock(); }
 };
-
 #endif
