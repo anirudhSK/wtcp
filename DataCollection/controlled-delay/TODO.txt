@@ -1,0 +1,15 @@
+Need to split controlled-delay into two portions. One for the uplink and one for the downlink.
+
+In each direction, we want to maintain a target delay of 100ms. 
+
+The uplink sender is the phone or a laptop attached to the phone over USB.
+
+The downlink sender is the server which first needs to hole punch into the phone. 
+
+The receiver acks back to the sender and the sender processes this ACK. 
+
+Changes :
+
+1. Split the uplink and the downlink into two different halves.
+2. Make the receiver ack back every packet he receives. 
+3. Maybe have one exec and parametrize it to be uplink or downlink ? 
