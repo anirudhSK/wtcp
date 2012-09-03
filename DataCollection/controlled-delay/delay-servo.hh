@@ -20,7 +20,7 @@ private:
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
   static constexpr double QUEUE_DURATION_TARGET = 1.0; /* seconds */
-  static constexpr double STEERING_TIME = 0.1; /* seconds */
+  static constexpr double STEERING_TIME = 0.05; /* seconds */
   static constexpr double MINIMUM_RATE = 5.0; /* packets per second */
 
   int _unique_id;

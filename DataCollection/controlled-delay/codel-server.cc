@@ -79,20 +79,23 @@ int main( int argc, char* argv[] ) {
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
   DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id);
+  DelayServoReceiver uplink_receiver("UP-RX",ethernet_socket,target,remote_id);
 
   while ( 1 ) {
     fflush( NULL );
 
     /* possibly send packet */
     downlink_sender.tick();
-    
+  //uplink_receiver.tick(); 
     /* wait for incoming packet OR expiry of timer */
     struct pollfd poll_fds[ 1 ];
     poll_fds[ 0 ].fd = downlink_sender.fd();
     poll_fds[ 0 ].events = POLLIN;
 
     struct timespec timeout;
-    uint64_t next_transmission_delay = std::min( downlink_sender.wait_time_ns(), (uint64_t)-1);
+    uint64_t next_transmission_delay = std::min( (uint64_t)-1  , downlink_sender.wait_time_ns() );
+  //uint64_t next_transmission_delay = std::min( uplink_receiver.wait_time_ns(), (uint64_t)-1  );
+
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;
     ppoll( poll_fds, 1, &timeout, NULL );
@@ -105,7 +108,9 @@ int main( int argc, char* argv[] ) {
        downlink_sender.recv(feedback);
       }
       else if (*pkt_id==remote_id) { /* this is data */
-       std::cout<<"Received data \n";
+       Payload *contents = (Payload *) incoming.payload.data();
+       contents->recv_timestamp = incoming.timestamp;
+       uplink_receiver.recv(contents);
       }
     }
   }

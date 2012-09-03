@@ -77,20 +77,23 @@ int main( int argc , char* argv[] ) {
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
   DelayServoReceiver downlink_receiver("DOWN-RX",lte_socket,server_address,remote_id);
+  DelayServoSender uplink_sender("UP-TX",lte_socket,server_address,local_id);
 
   while ( 1 ) {
     fflush( NULL );
 
     /* possibly send packet */
     downlink_receiver.tick();
-    
+  //uplink_sender.tick(); 
     /* wait for incoming packet OR expiry of timer */
     struct pollfd poll_fds[ 1 ];
     poll_fds[ 0 ].fd = downlink_receiver.fd();
     poll_fds[ 0 ].events = POLLIN;
 
     struct timespec timeout;
-    uint64_t next_transmission_delay = std::min( downlink_receiver.wait_time_ns(),(uint64_t)-1);
+  //uint64_t next_transmission_delay = std::min( (uint64_t)-1  ,uplink_sender.wait_time_ns()  );
+    uint64_t next_transmission_delay = std::min( downlink_receiver.wait_time_ns(), (uint64_t)-1  );
+
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;
     ppoll( poll_fds, 1, &timeout, NULL );
@@ -99,7 +102,8 @@ int main( int argc , char* argv[] ) {
       Socket::Packet incoming( lte_socket.recv() );
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
       if(*pkt_id==local_id) /* this is feedback */  {
-       std::cout<<"Received feedback \n";
+       Feedback *feedback = (Feedback *) incoming.payload.data();
+       uplink_sender.recv(feedback);
       }
       else if (*pkt_id==remote_id) { /* this is data */
        Payload *contents = (Payload *) incoming.payload.data();
