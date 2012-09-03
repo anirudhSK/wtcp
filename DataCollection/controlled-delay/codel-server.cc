@@ -78,6 +78,33 @@ int main( int argc, char* argv[] ) {
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
   DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id);
-  DelayServoReceiver uplink_receiver("UP-RX",ethernet_socket,target,remote_id);
 
+  while ( 1 ) {
+    fflush( NULL );
+
+    /* possibly send packet */
+    downlink_sender.tick();
+    
+    /* wait for incoming packet OR expiry of timer */
+    struct pollfd poll_fds[ 1 ];
+    poll_fds[ 0 ].fd = downlink_sender.fd();
+    poll_fds[ 0 ].events = POLLIN;
+
+    struct timespec timeout;
+    uint64_t next_transmission_delay = std::min( downlink_sender.wait_time_ns(), (uint64_t)-1);
+    timeout.tv_sec = next_transmission_delay / 1000000000;
+    timeout.tv_nsec = next_transmission_delay % 1000000000;
+    ppoll( poll_fds, 1, &timeout, NULL );
+
+    if ( poll_fds[ 0 ].revents & POLLIN ) {
+      Socket::Packet incoming( ethernet_socket.recv() );
+      uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
+      if(*pkt_id==local_id) /* this is feedback */  {
+       std::cout<<"Received feedback \n";
+      }
+      else if (*pkt_id==remote_id) { /* this is data */
+       std::cout<<"Received data \n";
+      }
+    }
+  }
 }
