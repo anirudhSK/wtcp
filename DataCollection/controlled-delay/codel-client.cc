@@ -6,22 +6,24 @@
 #include <unistd.h>
 
 #include "delay-servo.hh"
-
+#include <iostream>
 using namespace std;
 
-void punch_nat_hole (const Socket & local, const Socket::Address & server_address) {
-  char buf[ 10 ];
-  for ( int i = 0; i < 10; i++ ) {
-    buf[ i ] = rand() % 256;
-  }
+uint32_t punch_nat_hole ( const Socket & lte_socket, const Socket::Address & server_address ,  uint32_t local_id ) {
+  /* 3 way handshake to punch hole, ACK-NAT it and exchange IDs */
+  uint32_t remote_id;
   while(1) {
-    /* till you get an ACK   */
-    std::cout<<"Still to get an ACK, trying to punch a hole again \n";
-    string hole_punch( "HOLE-PUNCH" );
-    sender.send( Socket::Packet( server_address , hole_punch ) );
+    std::cout<<"Still to get an ACK-NAT, trying to punch a hole again \n";
+    char id_str[20]; 
+    /* TODO : Fix this. Setting this to even 10 seems to create a buffer overflow under O3 */ 
+    sprintf(id_str,"%d",local_id);
+    string hole_punch( "HOLE-PUNCH");
+    string id_string(id_str);
+    std::cout<<"Sending Hole punch string "<<hole_punch+id_string<<"\n";
+    lte_socket.send( Socket::Packet( server_address , hole_punch+id_string ) );
 
     struct pollfd poll_fds[ 1 ];
-    poll_fds[ 0 ].fd = local.fd();
+    poll_fds[ 0 ].fd = lte_socket.get_sock();
     poll_fds[ 0 ].events = POLLIN;
 
     struct timespec timeout;
@@ -29,15 +31,18 @@ void punch_nat_hole (const Socket & local, const Socket::Address & server_addres
     timeout.tv_nsec = 0 ;
     ppoll( poll_fds, 1, &timeout, NULL );
 
-    /* receive and ack the packet */
+    /* receive and ack the ACK-NAT */
     if ( poll_fds[ 0 ].revents & POLLIN ) {
-      Socket::Packet ack(local.recv());
-      if ( ack.payload == "ACK-NAT" ) {
-        std::cout<<"Successfully punched a hole and received an ACK from the server. \n";
+      Socket::Packet ack(lte_socket.recv());
+      if ( ack.payload.substr(0,7) == "ACK-NAT" ) {
+        remote_id=atoi(ack.payload.substr(7).c_str());
+        std::cout<<"Successfully punched a hole and received an ACK-NAT from the server. Ack it \n";
+        lte_socket.send( Socket::Packet( server_address , "ACK-ACK" ) );
         break;
       }
     }
   }
+  return remote_id; 
 }
 
 double hread( uint64_t in )
@@ -47,50 +52,63 @@ double hread( uint64_t in )
 
 int main( int argc , char* argv[] ) {
   
-  if(argc<3) {
-   std::cout<<"Usage: ./codel-client local_ip server_ip \n";
+  if(argc<4) {
+   std::cout<<"Usage: ./codel-client local_ip server_ip interface \n";
    exit(1);
   }
  
   /* get details from cmd line */ 
   std::string local_ip((const char*)argv[1]);
   std::string server_ip((const char*)argv[2]);
+  std::string interface((const char*)argv[3]);
   Socket::Address server_address( server_ip , 9000 );
 
   /* Create and bind LTE socket on USB0 tethered to the phone */
   Socket lte_socket;
 
   lte_socket.bind( Socket::Address( local_ip, 9001 ) );
-  lte_socket.bind_to_device( "usb0" );
+  lte_socket.bind_to_device( interface );
 
   /* Keep sending packets to the server until he acks that he got your packet. Otherwise nothing can run */
-  punch_nat_hole(lte_socket,server_address); 
-////
-////  /* Now do the actual codel routine */
-////  DelayServo uplink( "UP  ", lte_socket, server_ip);
-////
-////  while ( 1 ) {
-////    fflush( NULL );
-////
-////    /* possibly send packet on the uplink */
-////    uplink.tick();
-////    
-////    /* wait for incoming packet OR expiry of timer */
-////    struct pollfd poll_fds[ 1 ];
-////    poll_fds[ 0 ].fd = uplink.fd();
-////    poll_fds[ 0 ].events = POLLIN;
-////
-////    struct timespec timeout;
-////    uint64_t next_transmission_delay = uplink.wait_time_ns();
-////    timeout.tv_sec = next_transmission_delay / 1000000000;
-////    timeout.tv_nsec = next_transmission_delay % 1000000000;
-////    ppoll( poll_fds, 1, &timeout, NULL );
-////
-////    /* recv and ack the packet coming in on the downlink 
-////       recv acks coming in on the downlink for your own packets
-////       and update stats */
-////    if ( poll_fds[ 0 ].revents & POLLIN ) {
-////      uplink.recv();
-////    }
-////  }
+  uint32_t local_id = (int) getpid() ^ rand(); 
+  /* To avoid confusing old zombies */ 
+  uint32_t remote_id=punch_nat_hole(lte_socket,server_address,local_id); 
+
+  std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
+
+  DelayServoReceiver downlink_receiver("DOWN-RX",lte_socket,server_address,remote_id);
+  DelayServoSender uplink_sender("UP-TX",lte_socket,server_address,local_id);
+
+  while ( 1 ) {
+    fflush( NULL );
+
+    /* possibly send packet */
+    downlink_receiver.tick();
+    uplink_sender.tick(); 
+    /* wait for incoming packet OR expiry of timer */
+    struct pollfd poll_fds[ 1 ];
+    poll_fds[ 0 ].fd = downlink_receiver.fd();
+    poll_fds[ 0 ].events = POLLIN;
+
+    struct timespec timeout;
+    uint64_t next_transmission_delay = std::min( downlink_receiver.wait_time_ns(), uplink_sender.wait_time_ns()  );
+
+    timeout.tv_sec = next_transmission_delay / 1000000000;
+    timeout.tv_nsec = next_transmission_delay % 1000000000;
+    ppoll( poll_fds, 1, &timeout, NULL );
+
+    if ( poll_fds[ 0 ].revents & POLLIN ) {
+      Socket::Packet incoming( lte_socket.recv() );
+      uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
+      if(*pkt_id==local_id) /* this is feedback */  {
+       Feedback *feedback = (Feedback *) incoming.payload.data();
+       uplink_sender.recv(feedback);
+      }
+      else if (*pkt_id==remote_id) { /* this is data */
+       Payload *contents = (Payload *) incoming.payload.data();
+       contents->recv_timestamp = incoming.timestamp;
+       downlink_receiver.recv(contents);
+      }
+    }
+  }
 }

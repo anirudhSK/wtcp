@@ -6,22 +6,20 @@
 #include "socket.hh"
 #include "rate-estimate.hh"
 #include "history.hh"
-
-class DelayServo {
+#include "feedback.hh"
+class DelayServoSender {
 private:
 
   const std::string _name;
 
   const Socket & _sender;
   const Socket::Address & _target;
-  const Socket & _receiver;
 
-  RateEstimate _rate_estimator;
-
-  unsigned int _packets_sent, _packets_received;
+  double _current_rate;
+  unsigned int _packets_sent;
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
-  static constexpr double QUEUE_DURATION_TARGET = 1.0; /* seconds */
+  static constexpr double QUEUE_DURATION_TARGET = 0.250; /* seconds */
   static constexpr double STEERING_TIME = 0.05; /* seconds */
   static constexpr double MINIMUM_RATE = 5.0; /* packets per second */
 
@@ -29,18 +27,47 @@ private:
 
   uint64_t _next_transmission, _last_transmission;
 
+  double _num_outstanding;
+ 
+public:
+
+  DelayServoSender( const std::string & s_name, const Socket & s_sender, const Socket::Address & s_target,uint32_t sender_id );
+
+  void tick( void );
+  void recv(Feedback *feedback_pkt);
+
+  uint64_t wait_time_ns( void ) const;
+  int fd( void ) const { return _sender.get_sock(); }
+};
+
+class DelayServoReceiver {
+private:
+
+  const std::string _name;
+
+  const Socket & _receiver;
+  const Socket::Address & _source;
+
+  RateEstimate _rate_estimator;
+
+  unsigned int _packets_received;
+
+  static const unsigned int PACKET_SIZE = 1400; /* bytes */
+
+  int _unique_id;
+
+  uint64_t _next_transmission, _last_transmission,_last_stat;
+
   History _hist;
 
 public:
 
-  DelayServo( const std::string & s_name, const Socket & s_sender,
-	      const Socket::Address & s_target, const Socket & s_receiver );
+  DelayServoReceiver( const std::string & s_name, const Socket & s_receiver,const Socket::Address & s_source , uint32_t remoted_id );
 
-  void tick( void );
-  void recv( void );
+  void tick();
+  void recv( Payload* payload);
 
-  int wait_time_ns( void ) const;
+  uint64_t wait_time_ns( void ) const;
   int fd( void ) const { return _receiver.get_sock(); }
 };
-
 #endif
