@@ -12,8 +12,8 @@ private:
   /* 20 ms */
 
   std::list< uint32_t > _received;
-  unsigned int _num_outstanding;
-  unsigned int _num_lost;
+  uint32_t _num_outstanding;
+  uint32_t _num_lost;
   uint32_t _next_exp_seq_no;   // next expected sequence number in order
   uint32_t _max_rx_seq_no;    // max received so far. 
 

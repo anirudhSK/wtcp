@@ -52,21 +52,22 @@ double hread( uint64_t in )
 
 int main( int argc , char* argv[] ) {
   
-  if(argc<3) {
-   std::cout<<"Usage: ./codel-client local_ip server_ip \n";
+  if(argc<4) {
+   std::cout<<"Usage: ./codel-client interface local_ip server_ip \n";
    exit(1);
   }
  
   /* get details from cmd line */ 
   std::string local_ip((const char*)argv[1]);
   std::string server_ip((const char*)argv[2]);
+  std::string interface((const char*)argv[3]);
   Socket::Address server_address( server_ip , 9000 );
 
   /* Create and bind LTE socket on USB0 tethered to the phone */
   Socket lte_socket;
 
   lte_socket.bind( Socket::Address( local_ip, 9001 ) );
-  lte_socket.bind_to_device( "usb0" );
+  lte_socket.bind_to_device( interface );
 
   /* Keep sending packets to the server until he acks that he got your packet. Otherwise nothing can run */
   uint32_t local_id = (int) getpid() ^ rand(); 

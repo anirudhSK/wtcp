@@ -57,17 +57,18 @@ double hread( uint64_t in )
 }
 
 int main( int argc, char* argv[] ) {
-  if(argc<2) {
-   std::cout<<"Usage: ./codel-server local_ip \n";
+  if(argc<3) {
+   std::cout<<"Usage: ./codel-server interface local_ip \n";
    exit(1);
   }
   /* get details from cmd line */ 
   std::string local_ip((const char*)argv[1]);
+  std::string interface((const char*)argv[2]);
 
   Socket::Address ethernet_address( local_ip, 9000 );
   Socket ethernet_socket;
   ethernet_socket.bind( ethernet_address );
-  ethernet_socket.bind_to_device( "eth0" );
+  ethernet_socket.bind_to_device( interface );
 
   /* Figure out the NAT addresses of each of the three LTE sockets */
   uint32_t local_id = (int) getpid() ^ rand(); 
