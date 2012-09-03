@@ -53,7 +53,7 @@ double hread( uint64_t in )
 int main( int argc , char* argv[] ) {
   
   if(argc<4) {
-   std::cout<<"Usage: ./codel-client interface local_ip server_ip \n";
+   std::cout<<"Usage: ./codel-client local_ip server_ip interface \n";
    exit(1);
   }
  
