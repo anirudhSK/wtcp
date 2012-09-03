@@ -21,13 +21,13 @@ void TraceLink::tick() {
    /* Can I send pkts right away ? */ 
    if(!pkt_queue.empty()) {
      Payload head=pkt_queue.front();
-     while(token_count>=head.size && head.size > 0) {
+     while(token_count>=head.size ) {
         ts_now=send_pkt(head);
         dequeue();
         head.sent_ts=ts_now; // get sent_ts
         latency_estimator.add_latency_sample(head);        
         token_count=token_count-head.size;
-        if(pkt_queue.empty()) head.size=-1;
+        if(pkt_queue.empty()) break;
         else  head=pkt_queue.front();
      }
      /* if there are packets wait till tokens accumulate in the future */ 

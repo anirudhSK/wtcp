@@ -34,6 +34,7 @@ void Link::print_stats(uint64_t ts_now){
 uint64_t Link::send_pkt(Payload p)  {
    int sent_bytes;
    if ((sent_bytes = send(link_socket,p.pkt_data,p.size,MSG_TRUNC))<0) {
+               std::cout<<"Trying to send payload with size "<<p.size<<"\n";
                perror("send() on egress failed:");
                exit(EXIT_FAILURE);
    }

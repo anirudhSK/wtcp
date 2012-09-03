@@ -288,6 +288,7 @@ int main(int argc,char** argv) {
 #ifdef DEBUG
            printf("Received packet of %d bytes on ingress from client \n",recv_bytes);   
 #endif
+           assert(recv_bytes>0);
            uplink->recv(ether_frame,recv_bytes,rx_ts);
       }
     }
@@ -301,6 +302,7 @@ int main(int argc,char** argv) {
           if (check_mac_addr(dst_mac,client_mac)) printf("Received packet of %d bytes on egress to client \n",recv_bytes);   
           else if (check_mac_addr(dst_mac,bcast)) printf("Received packet of %d bytes on egress to broadcast \n",recv_bytes);   
 #endif
+          assert(recv_bytes>0);
           downlink->recv(ether_frame,recv_bytes,rx_ts);
       }
     }
