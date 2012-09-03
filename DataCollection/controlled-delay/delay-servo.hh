@@ -65,7 +65,7 @@ public:
   DelayServoReceiver( const std::string & s_name, const Socket & s_receiver,const Socket::Address & s_source , uint32_t remoted_id );
 
   void tick();
-  void recv( Payload* payload, uint64_t rx_timestamp);
+  void recv( Payload* payload);
 
   uint64_t wait_time_ns( void ) const;
   int fd( void ) const { return _receiver.get_sock(); }

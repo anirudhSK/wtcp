@@ -40,30 +40,26 @@ uint64_t DelayServoReceiver::wait_time_ns( void ) const
 {
   return _next_transmission - Socket::timestamp();
 }
-void DelayServoReceiver::recv( Payload* contents , uint64_t rx_timestamp )
+void DelayServoReceiver::recv( Payload* contents )
 {
-  /* This has to be a data packet  */
-  contents->recv_timestamp = rx_timestamp;
-
+   /* This has to be a data packet  */
    /* Update controlled delay estimate, 
       Make sure to echo sender ID on ACK */
   double current_rate=0; 
-  if ( contents->sender_id == _unique_id ) {
-   _rate_estimator.add_packet( *contents );
-   current_rate=_rate_estimator.get_rate();
-   _hist.packet_received( *contents , current_rate );
-   double loss_rate = (double) _hist.num_lost() / (double) _hist.max_rx_seq_no();  
-   printf( "%s seq = %d delay = %f recvrate = %f queueest = %f outstanding = %d Mbps = %f lost = %.5f%% arrivemilli = %ld\n",
-           _name.c_str(),
-           contents->sequence_number,
-           (double) (contents->recv_timestamp - contents->sent_timestamp) / 1.0e9,
-           _rate_estimator.get_rate(),
-           (double) _hist.num_outstanding() / _rate_estimator.get_rate(),
-           _hist.num_outstanding(),
-           _rate_estimator.get_rate() * PACKET_SIZE * 8.0 / 1.0e6,
-           loss_rate * 100,
-           contents->recv_timestamp / 1000000 );
-  }
+  _rate_estimator.add_packet( *contents );
+  current_rate=_rate_estimator.get_rate();
+  _hist.packet_received( *contents , current_rate );
+  double loss_rate = (double) _hist.num_lost() / (double) _hist.max_rx_seq_no();  
+  printf( "%s seq = %d delay = %f recvrate = %f queueest = %f outstanding = %d Mbps = %f lost = %.5f%% arrivemilli = %ld\n",
+          _name.c_str(),
+          contents->sequence_number,
+          (double) (contents->recv_timestamp - contents->sent_timestamp) / 1.0e9,
+          _rate_estimator.get_rate(),
+          (double) _hist.num_outstanding() / _rate_estimator.get_rate(),
+          _hist.num_outstanding(),
+          _rate_estimator.get_rate() * PACKET_SIZE * 8.0 / 1.0e6,
+          loss_rate * 100,
+          contents->recv_timestamp / 1000000 );
 }
 
 void DelayServoReceiver::tick( void ) 
@@ -124,5 +120,6 @@ void DelayServoSender::recv(Feedback* feedback) {
   if( feedback->sender_id == _unique_id) {
    _num_outstanding=feedback->num_outstanding;
    _current_rate=feedback->current_rate;
+   std::cout<<"@ "<<Socket::timestamp()<<" rx feedback num_outstanding "<<_num_outstanding<<" current_rate "<<_current_rate<<" \n";
   }
 }

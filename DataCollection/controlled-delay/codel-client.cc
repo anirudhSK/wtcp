@@ -101,7 +101,9 @@ int main( int argc , char* argv[] ) {
        std::cout<<"Received feedback \n";
       }
       else if (*pkt_id==remote_id) { /* this is data */
-       std::cout<<"Received data \n";
+       Payload *contents = (Payload *) incoming.payload.data();
+       contents->recv_timestamp = incoming.timestamp;
+       downlink_receiver.recv(contents);
       }
     }
   }

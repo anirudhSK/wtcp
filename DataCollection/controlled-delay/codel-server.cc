@@ -100,7 +100,8 @@ int main( int argc, char* argv[] ) {
       Socket::Packet incoming( ethernet_socket.recv() );
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
       if(*pkt_id==local_id) /* this is feedback */  {
-       std::cout<<"Received feedback \n";
+       Feedback *feedback = (Feedback *) incoming.payload.data();
+       downlink_sender.recv(feedback);
       }
       else if (*pkt_id==remote_id) { /* this is data */
        std::cout<<"Received data \n";
