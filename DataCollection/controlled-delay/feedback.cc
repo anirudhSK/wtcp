@@ -13,5 +13,6 @@ bool Feedback::operator==( const Feedback & other ) const
 {
   return (num_outstanding == other.num_outstanding
 	  && current_rate == other.current_rate
-	  && sender_id == other.sender_id);
+	  && sender_id == other.sender_id
+          && max_rx_seq_no == other.max_rx_seq_no);
 }

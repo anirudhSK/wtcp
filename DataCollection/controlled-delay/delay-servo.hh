@@ -16,7 +16,7 @@ private:
   const Socket::Address & _target;
 
   double _current_rate;
-  unsigned int _packets_sent, _packets_received;
+  unsigned int _packets_sent;
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
   static constexpr double QUEUE_DURATION_TARGET = 1.0; /* seconds */
@@ -50,7 +50,7 @@ private:
 
   RateEstimate _rate_estimator;
 
-  unsigned int _packets_sent, _packets_received;
+  unsigned int _packets_received;
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
 
