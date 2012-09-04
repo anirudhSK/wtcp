@@ -259,10 +259,6 @@ int main(int argc,char** argv) {
   poll_fds[ 2 ].fd = sfd;
   poll_fds[ 2 ].events = POLLIN;
 
-  struct timespec timeout;
-  timeout.tv_sec=0;
-  timeout.tv_nsec=0;
-
   while(1) {
     /* send packets if possible */ 
     /* poll both ingress and egress sockets */ 
