@@ -23,12 +23,16 @@ private:
   static constexpr double STEERING_TIME = 0.05; /* seconds */
   static constexpr double MINIMUM_RATE = 20.0; /* packets per second */
 
+  static const unsigned int CWND_MIN = 100;  /* packets */
+  static const unsigned int CWND_MAX = 1000; /* packets */
+
   int _unique_id;
 
   uint64_t _next_transmission, _last_transmission;
 
-  double _num_outstanding;
- 
+  uint32_t _num_outstanding,_num_lost,_num_acks;
+
+  uint16_t _cwnd;                               /* cong window in packets */ 
 public:
 
   DelayServoSender( const std::string & s_name, const Socket & s_sender, const Socket::Address & s_target,uint32_t sender_id );

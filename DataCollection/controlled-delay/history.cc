@@ -4,7 +4,7 @@
 
 History::History()
   : _received(),
-    _num_outstanding( 0 ),
+    _num_outstanding_rx( 0 ),
     _num_lost( 0 ),
     _next_exp_seq_no( 0 ),
     _max_rx_seq_no( 0 ) {
@@ -48,7 +48,7 @@ void History::packet_received( const Payload & p , double current_rate  ) {
   /* Hence, invariant is preserved */
 
 
-  _num_outstanding = std::max((int)0,(int)(_max_rx_seq_no-_next_exp_seq_no-_received.size()));
+  _num_outstanding_rx = std::max((int)0,(int)(_max_rx_seq_no-_next_exp_seq_no-_received.size()));
   /* Number outstanding :
       Max rx seq num so far : lower bnd on number Tx
    -   next_exp_seq_no : all seq nums rx in-order or assumed lost 
