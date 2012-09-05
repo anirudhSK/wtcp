@@ -115,8 +115,8 @@ void DelayServoSender::tick( void )
     }
    }
    else {
-      _next_transmission=-1;
-      /*wait for ACK(s) */ 
+      _next_transmission=now+100*1e6; 
+      /*wait for ACK(s) , but wake up in 100ms to avoid deadlock */ 
    }
 }
 
