@@ -1,0 +1,16 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+#my $ADB = '/home/keithw/android/android-sdk-linux/platform-tools/adb';
+my $ADB = 'adb';
+my %devices = ( D => '0149A97C0F012017',
+C => '0149A44C0C012007',
+B => '0149A44C1000D00C',
+A => '014696C50601901F' );
+
+my ( $device, @command ) = @ARGV;
+
+die unless exists $devices{ $device };
+
+exec { $ADB } ( 'adb', '-s', $devices{ $device }, @command );
