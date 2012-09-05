@@ -16,6 +16,11 @@ DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s
     _last_transmission( _next_transmission ),
     _num_outstanding(0)
 {
+  std::cout<<"Servo PARAMETERS \n";
+  std::cout<<"PACKET_SIZE = "<<PACKET_SIZE<<"\n";
+  std::cout<<"QUEUE_DURATION_TARGET = "<<QUEUE_DURATION_TARGET<<"\n";
+  std::cout<<"STEERING_TIME = "<<STEERING_TIME<<"\n";
+  std::cout<<"MINIMUM_RATE = "<<MINIMUM_RATE<<"\n";
 }
 
 DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket & s_receiver, const Socket::Address & s_source, uint32_t remote_id )

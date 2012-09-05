@@ -19,7 +19,7 @@ private:
   unsigned int _packets_sent;
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
-  static constexpr double QUEUE_DURATION_TARGET = 0.250; /* seconds */
+  static constexpr double QUEUE_DURATION_TARGET = 1.000; /* seconds */
   static constexpr double STEERING_TIME = 0.05; /* seconds */
   static constexpr double MINIMUM_RATE = 5.0; /* packets per second */
 
