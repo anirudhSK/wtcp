@@ -21,6 +21,7 @@ public:
   History();
   void packet_sent( const Payload & p );
   void packet_received( const Payload & p , double current_rate );
+  void active_purge( uint32_t purge_seq );
   unsigned int num_outstanding_rx( void ) const { return _num_outstanding_rx; }
   unsigned int num_lost( void ) const { return _num_lost; }
   unsigned int max_rx_seq_no(void) const { return _max_rx_seq_no; }

@@ -82,7 +82,12 @@ void DelayServoReceiver::recv( Payload* contents )
 void DelayServoReceiver::tick( void ) 
 {
   /* Make a feedback packet with num_outstanding & current_rate 
-     Send once in 20 ms */ 
+     Send once in 20 ms */
+  if ( Socket::timestamp() > _last_stat + 2e9 ) { 
+      /* 2 seconds since last recv, actively purge */
+      _hist.active_purge(_hist.max_rx_seq_no() + 10);
+      _last_stat=Socket::timestamp();
+  } 
   if ( Socket::timestamp() > _next_transmission ) /* 20 ms*/ {
        Feedback feedback;
        feedback.num_outstanding_rx =_hist.num_outstanding_rx(); 
@@ -148,7 +153,8 @@ void DelayServoSender::recv(Feedback* feedback) {
    _cwnd=(_cwnd<CWND_MIN)?CWND_MIN:_cwnd;
 
    std::cout<<_name<<"@ "<<Socket::timestamp()<<" rx feedback num_outstanding "<<_num_outstanding<<" num_lost "<<_num_lost<<" new cwnd "<<_cwnd<<" num acks "<<_num_acks<<"\n";
-   while ( (num_new_acks>= 1) ) { /* self clock to refill  */
+   while ( (num_new_total>= 1) && (_num_outstanding < _cwnd) ) { 
+      /* self clock to refill both acked packets and lost ones to maintain packet conservation */
       /* Send packet */
       Payload outgoing;
       outgoing.sequence_number = _packets_sent++;
@@ -156,7 +162,7 @@ void DelayServoSender::recv(Feedback* feedback) {
       outgoing.sender_id = _unique_id;
       _sender.send( Socket::Packet( _target, outgoing.str( PACKET_SIZE ) ) );
       _num_outstanding++;
-      num_new_acks--;
+      num_new_total--;
     }
   }
 }
