@@ -85,6 +85,7 @@ void DelayServoReceiver::tick( void )
      Send once in 20 ms */
   if ( Socket::timestamp() > _last_stat + 2e9 ) { 
       /* 2 seconds since last recv, actively purge */
+      std::cout<<"Actively purging here \n";
       _hist.active_purge(_hist.max_rx_seq_no() + 10);
       _last_stat=Socket::timestamp();
   } 
@@ -120,7 +121,7 @@ void DelayServoSender::tick( void )
     }
    }
    else {
-      _next_transmission=now+100*1e6; 
+      _next_transmission=now+100*1e6;
       /*wait for ACK(s) , but wake up in 100ms to avoid deadlock */ 
    }
 }
@@ -133,6 +134,7 @@ void DelayServoSender::recv(Feedback* feedback) {
       either acked or purged in this ack */
    uint64_t orig_outstanding=_num_outstanding;
    _num_outstanding=feedback->num_outstanding_rx +(_packets_sent-feedback->max_rx_seq_no) ;
+   std::cout<<"PAckets sent is "<<_packets_sent<<" max rx seq num is "<<feedback->max_rx_seq_no<<" _num_outstanding is "<<_num_outstanding<<"\n";
    int num_new_total=0;
    if (orig_outstanding > _num_outstanding) num_new_total=orig_outstanding-_num_outstanding;
 

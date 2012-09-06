@@ -24,7 +24,7 @@ private:
   static constexpr double MINIMUM_RATE = 20.0; /* packets per second */
 
   static const unsigned int CWND_MIN = 100;  /* packets */
-  static const unsigned int CWND_MAX = 1000; /* packets */
+  static const unsigned int CWND_MAX = 500; /* packets */
 
   int _unique_id;
 
