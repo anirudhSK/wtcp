@@ -78,7 +78,7 @@ int main( int argc, char* argv[] ) {
 
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
-  DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id);
+  DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id,2e9,1000,2000);
   DelayServoReceiver uplink_receiver("UP-RX",ethernet_socket,target,remote_id);
 
   while ( 1 ) {

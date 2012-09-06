@@ -5,7 +5,7 @@
 #include <iostream>
 #include "delay-servo.hh"
 
-DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_sender,const Socket::Address & s_target, uint32_t local_id )
+DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_sender,const Socket::Address & s_target, uint32_t local_id, uint64_t s_ramp_up_ns, unsigned int cwnd_min, unsigned int cwnd_max )
   : _name( s_name ), 
     _sender( s_sender ),
     _target( s_target ),
@@ -17,13 +17,16 @@ DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s
     _num_outstanding(0),
     _num_lost(0),
     _num_acks(0),
-    _cwnd(CWND_MIN)
+    CWND_MIN(cwnd_min),
+    CWND_MAX(cwnd_max),
+    _cwnd(CWND_MIN),
+    _ramp_up_ns(s_ramp_up_ns)
 {
   std::cout<<"Servo PARAMETERS \n";
   std::cout<<"PACKET_SIZE = "<<PACKET_SIZE<<"\n";
-  std::cout<<"QUEUE_DURATION_TARGET = "<<QUEUE_DURATION_TARGET<<"\n";
-  std::cout<<"STEERING_TIME = "<<STEERING_TIME<<"\n";
-  std::cout<<"MINIMUM_RATE = "<<MINIMUM_RATE<<"\n";
+  std::cout<<"CWND_MIN = "<<CWND_MIN<<"\n";
+  std::cout<<"CWND_MAX = "<<CWND_MAX<<"\n";
+  std::cout<<"RAMP UP = "<<_ramp_up_ns<<"\n";
 }
 
 DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket & s_receiver, const Socket::Address & s_source, uint32_t remote_id )
@@ -105,8 +108,8 @@ void DelayServoSender::tick( void )
 {
    uint64_t now = Socket::timestamp();
    if( (_num_outstanding < _cwnd ) ) { /* slow start */
-    uint64_t interpacket_delay=10.0e9/_cwnd; 
-    /* Whatever be the cwnd ramp up to it in 10 seconds to be somewhat reasonable */ 
+    uint64_t interpacket_delay=_ramp_up_ns/_cwnd; 
+    /* Whatever be the cwnd ramp up to it in _ramp_up_ns nanosecs to be somewhat reasonable */ 
     if ( _next_transmission <= now ) {
       /* Send packet */
       Payload outgoing;
@@ -117,7 +120,7 @@ void DelayServoSender::tick( void )
       _last_transmission = outgoing.sent_timestamp;
       _next_transmission = _last_transmission + interpacket_delay;
       _num_outstanding++;
-      std::cout<<_name<<" Transmitting in tick \n";
+      std::cout<<_name<<" Transmitting in tick with rate "<<1.0e9/interpacket_delay<<" packets per second \n";
     }
    }
    else {
@@ -165,6 +168,6 @@ void DelayServoSender::recv(Feedback* feedback) {
       _sender.send( Socket::Packet( _target, outgoing.str( PACKET_SIZE ) ) );
       _num_outstanding++;
       num_new_total--;
-    }
+   }
   }
 }
