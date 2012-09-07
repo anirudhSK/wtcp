@@ -21,7 +21,7 @@ private:
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
   static constexpr double QUEUE_DURATION_TARGET = 2.000; /* seconds */
   static constexpr double STEERING_TIME = 0.05; /* seconds */
-  static constexpr double MINIMUM_RATE = 20.0; /* packets per second */
+  static constexpr double MINIMUM_RATE = 10.0; /* packets per second */
 
 
   int _unique_id;
@@ -33,10 +33,10 @@ private:
   unsigned int CWND_MIN ;  /* packets */
   unsigned int CWND_MAX ; /* packets */
   uint16_t _cwnd;                               /* cong window in packets */ 
-  uint64_t _ramp_up_ns;                          /* time to ramp up to CWND_MAX */
+  double _gamma;                          /* time to ramp up to CWND_MAX */
 public:
 
-  DelayServoSender( const std::string & s_name, const Socket & s_sender, const Socket::Address & s_target,uint32_t sender_id , uint64_t s_ramp_ns,  unsigned int cwnd_min, unsigned int cwnd_max );
+  DelayServoSender( const std::string & s_name, const Socket & s_sender, const Socket::Address & s_target,uint32_t sender_id , double s_gamma,  unsigned int cwnd_min, unsigned int cwnd_max );
 
   void tick( void );
   void recv(Feedback *feedback_pkt);
@@ -58,7 +58,7 @@ private:
   unsigned int _packets_received;
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
-  static constexpr double MINIMUM_RATE = 20.0; /* packets per second */
+  static constexpr double MINIMUM_RATE = 10.0; /* packets per second */
 
   int _unique_id;
 

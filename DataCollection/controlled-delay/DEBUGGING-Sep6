@@ -1,0 +1,154 @@
+Thursday Sep 6 :
+
+Ok, so far, nothing has really worked. Importantly, even Keith's coddel stuff doesn't work. 
+
+Target :
+
+1. > 250 ms latencies at all times.
+2. Losses < 50 %.
+3. No outages. 
+
+
+Ok,
+
+Uplink works awesome, great and high delays and easy to drive to capacity.
+Downlink is screwed up and creates frequent excursions into the danger zone. Maybe it's capacity is far lower than what we thought.  
+Also pushing the throughput does drive the delay up, so thankfully that at least works. 
+
+
+So, for now :
+
+UPLINK works ok. Well there are losses and you need to be careful about driving the delays up TOOOO much, cause then it shuts off. Solution : Use different CWMIN and CWMAX for the uplink.
+
+DOWNLINK works but there are frequent excursions into the danger zone. 
+
+12 noon :
+
+Traceroute doesn't reveal anything specific except that Verizon is super dumb and sends all the traffic through new york before getting it back to MIT. God only knows why.
+Maybe they are shaping us on the downlink ? The packet losses are all tail drop on the uplink. 
+
+Not sure about anything yet. It seems to drop packets only stochastically maybe as tail drop. 
+
+1:30 pm :
+
+FLood at the rate of 1500 packets per second. Busy wait to make sure you don't miss anything. 
+
+
+The uplink hardly gets any packets and has losses at 87 %. I guess the uplink we know how to saturate. It's the downlink we are worried about. So let's focus just on downlink flooding. 
+The Downlink doesn't have ANY losses.
+
+Focus solely on the Downlink for now. The uplink we can use a CW between 100 and 1000 or 100 and 500 and we can solve that problem.  
+
+
+Ok, I can't send at 1500 packets per second for some reason. Every now and then it takes a breather and cools off for 50 ms. This is confirmed by the CPU utilization also being only 59%. 850/1500 seems to give the same number. I wonder why I can't drive it to 100% CPU as well. 
+
+It looks like this app is network bound because the ethernet doesn't seem to send out any more than 9.6 Mbps. Maybe MIT does some flow control on dorm room Ethernet. The CSAIL ones easily give you several Megabits per second, in fact several 100 megabits. So that might be one reason why I can't drive it up to more than 9.6 Mbps. Might explain the few underflows as well. 
+
+Moving to the CSAIL server seems to fix this issue of network boundedness. 
+
+We need to be able to go all the way up to 15 Mbps for this stuff to work on the downlink and my ethernet seems to be the bottleneck.  
+
+That's bug one to fix.
+
+GOod news is that now the delays are consistently high, 3 seconds plus all the time.
+
+
+BUGS :
+
+The amazingly huge 1 trillion timestamp. Fix this sometime or worst case prune it out of the trace later. 
+
+Ok :
+
+So on the CSAIL machine, the 56 % network boundedness is gone. Also the graph seems to vary quite a bit between 2 and 4 second latencies and the input rate is 1500 pkts per second which is 16.8 Mbps, which is good enough for our purposes I guess. 
+
+So maybe one rate control rule is : maintain the sending rate to 2x of the currently receiving rate to make sure the buffer is always full. Cap it off at about 1500 pkts per second. Run a busy wait to implement the server. The lower limit is 10 packets per second and the upper limit is 1500 packets per second. Hopefully that should cut it. We ll see.
+
+We can't fix it at 1500, because 1500 packets per second will just murder 3G.    
+
+Ok, 100 packets per second seems to fill 3G.
+
+Results :
+
+1500 packets per second fills up 4G
+100 packets per second fills up 3G
+
+The algorithm :
+
+In general, we want to estimate the current rate @ receiver and set our sending rate to betweeen 1.5 and twice that to make sure we are consistently filling up the buffer.
+We cap the minimum at 10 packets per second or 112 kbps. The maximum at 1500 packets per second or 16.8 mbps. This gives us enough range to go over the entire spectrum.
+
+Bad news, when you simulate a 4G to 3G transition by turning things off on the phone things go totally haywire. Maybe because it takes a while for handoff to complete. This is bad because this very much simulates a mobile scenario.
+
+Anyway at 5 pm the current algorithm is : estimate the receiver rate and set your rate to be twice that subject to caps. 
+
+Trying out the 2x current rate idea on the downlink first. 
+
+Ok, works great on the downlink. Drinks my CPU though, but that's ok. 
+
+Try the same out on the uplink and see how far it can go. 
+
+That works great as well.
+
+Now, we need to put two and two together on the uplink and the downlink and see what happens. 
+
+Intersitingly the loss rate tends to 50 %. That probably is a consequence of the fact that we are doing 2* the current rate. Maybe 1.5*current rate will be ok. The problem with all this is that the cell guys don't play nice and then suddenly hike up the rate and wonk goes our buffer filling plan. So, 2x is erring on the cautionary side of no overflows in the hope that transitioning from x to 2x that quickly is very very hard. 
+
+Of course, we risk the issue of shutting off the network.
+
+Maybe we should have a second check. If you don't hear from the receiver for 1 second, fall back to the standard 10 packets per second till you get something back from him. 
+
+Now, for the two way controlled delay. on 4G.
+
+7 pm :
+
+2 way controlled delay works ok, but I just realized in the process, that the max downlink throughput is 25 Mbps or more. So I need to be sending at 50 Mbps or so to make sure I am staying at twice the throughput. My current limit does lead to underflow. 
+
+8 pm :
+
+The no limited case seems to work awesome. Just committed this to the repo. Ok, next step trying this once the phone is forcibly on 3G. 
+
+
+3G Networks :
+-----------------------------------------------------------------------------------------
+Ok on 3G :
+
+The 3G downlink works more or less like the 4G experiments so far. But the uplink latency keeps on growing without ever settling into a steady state or a limit cycle. So, we have to be a little less brutal with the 3G uplink. In general, as a rule of thumb, we could set the uplink to do 1.5x instead of 2x. But seriously, I don't know why the uplink on 3G has such an enormous buffer that allows latencies to go up all the way to 140 seconds. Maybe it gets much much worse on 1X RTT.
+
+Anyway, my computer shut down in the process of overheating. So I ll have to rerun the experiment again.  
+
+Ok steps to do :
+
+1. Confirm that it indeed works on 3G downlink with the code as is.
+2. Fix it for 3G uplink. 
+
+9:30 pm :
+
+Downlink seems to work ok. There are a few minor excursions below the 250 ms line because packets are dropped left right and centre, but apart from that it's ok. Maybe we should have a different strategy for 3G and 4G by looking at number of packets per sec (< 100 is 3G) and (> 100 is 4G) . Because on 3G, the downlink drops excessively when confronted with 2x rate, and the uplink buffers heavily until like 190 seconds. Neither of these are desirable.
+
+We want to keep the buffering under 10 seconds if possible and the loss rates to under 50 % if possible. We have done that for 4G, we probably need a slightly different strategy for 3G.  
+
+So < 100 pkts per second, be nice so that there isn't super over buffering or losses. After that follow the usual algorithm. 
+
+After dinner and at 11:30 pm :
+
+1. 2 pronged  strategy i.e. 2x if you are over a receiving rate of 100 packets per sec. 1.5x otherwise.
+2. Non Busy wait only if time duration is less than a ms. This is required because my laptop shuts off if I push the CPU too hard. Maybe we can throw it out for later. 
+
+
+Results :
+
+Even with 1.5x, the uplink latency grows on like crazy. The downlink does vary quite a bit but for the most part does not touch the 250 ms line. However, reducing from 2x to 1.5x causes more of these underflow crossings. 
+
+Solution : Reduce 1.5x to 1x. 
+
+Ok, this is awesome, but the latencies are now down to empty queue latencies. So we need to fix this to something in between, maybe 1.25x. 
+
+Systematic problem :
+
+Reducing the gain improves the latencies on the uplink but  cause underflow on the 3G downlink. 
+
+Even with 1.1x, the uplink climbs like crazy. Maybe I should just control the downlink ?
+
+Anyway, I am too sleepy to think now. Crashing. 
+
+9 am in the morning the next day : DEBUGGING 3 

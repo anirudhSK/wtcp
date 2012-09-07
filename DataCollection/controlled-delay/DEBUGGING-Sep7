@@ -1,0 +1,7 @@
+Sep 7 Fri :
+
+On 3G: 
+
+A gain of 1.1 also seems to push up the uplink latencies all the way until 100 odd seconds, but the good news is that it gets to this 100 odd seconds much more slowly. On the downlink though, 1.1 is too gentle, and causes severe queue underflows.
+
+So the moral of the story, make this gamma for 3g variable, and set it to 1.1 on the uplink and about 2 on the downlink. 

@@ -78,7 +78,7 @@ int main( int argc, char* argv[] ) {
 
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
-  DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id,2e9,1000,2000);
+  DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id,2.0,1000,2000); /* gamma of 2 for downlink 3g */
   DelayServoReceiver uplink_receiver("UP-RX",ethernet_socket,target,remote_id);
 
   while ( 1 ) {
@@ -93,8 +93,7 @@ int main( int argc, char* argv[] ) {
     poll_fds[ 0 ].events = POLLIN;
 
     struct timespec timeout;
-//    uint64_t next_transmission_delay = std::min( uplink_receiver.wait_time_ns(), downlink_sender.wait_time_ns()  );
-    uint64_t next_transmission_delay = 0;
+    uint64_t next_transmission_delay = std::min( uplink_receiver.wait_time_ns(), downlink_sender.wait_time_ns()  );
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;
     ppoll( poll_fds, 1, &timeout, NULL );

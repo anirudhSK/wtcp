@@ -5,7 +5,7 @@
 #include <iostream>
 #include "delay-servo.hh"
 
-DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_sender,const Socket::Address & s_target, uint32_t local_id, uint64_t s_ramp_up_ns, unsigned int cwnd_min, unsigned int cwnd_max )
+DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_sender,const Socket::Address & s_target, uint32_t local_id, double s_gamma, unsigned int cwnd_min, unsigned int cwnd_max )
   : _name( s_name ), 
     _sender( s_sender ),
     _target( s_target ),
@@ -20,13 +20,13 @@ DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s
     CWND_MIN(cwnd_min),
     CWND_MAX(cwnd_max),
     _cwnd(CWND_MIN),
-    _ramp_up_ns(s_ramp_up_ns)
+    _gamma(s_gamma)
 {
   std::cout<<"Servo PARAMETERS \n";
   std::cout<<"PACKET_SIZE = "<<PACKET_SIZE<<"\n";
   std::cout<<"CWND_MIN = "<<CWND_MIN<<"\n";
   std::cout<<"CWND_MAX = "<<CWND_MAX<<"\n";
-  std::cout<<"RAMP UP = "<<_ramp_up_ns<<"\n";
+  std::cout<<"GAMMA = "<<_gamma<<"\n";
 }
 
 DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket & s_receiver, const Socket::Address & s_source, uint32_t remote_id )
@@ -45,8 +45,8 @@ DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket
 uint64_t DelayServoSender::wait_time_ns( void ) const
 {
   uint64_t cur_ts=Socket::timestamp();
-  if(_next_transmission > (cur_ts + 10e6) ) { 
-    /* if it's at least 10 ms in the future , else don't sleep */
+  if(_next_transmission > (cur_ts + 1e6) ) { 
+    /* if it's at least 1 ms in the future , else don't sleep */
     return _next_transmission - cur_ts;
   }
   else return 0;
@@ -54,8 +54,8 @@ uint64_t DelayServoSender::wait_time_ns( void ) const
 uint64_t DelayServoReceiver::wait_time_ns( void ) const
 {
   uint64_t cur_ts=Socket::timestamp();
-  if(_next_transmission > (cur_ts + 10e6) ) {
-    /* if it's at least 10 ms in the future , else don't sleep */
+  if(_next_transmission > (cur_ts + 1e6) ) {
+    /* if it's at least 1 ms in the future , else don't sleep */
     return _next_transmission - cur_ts;
   }
   else return 0;
@@ -126,7 +126,11 @@ void DelayServoSender::tick( void )
 
 void DelayServoSender::recv(Feedback* feedback) {
   /* This has to be a feedback packet  */
+  if(_packets_sent <= 20 ) return ;                   /* send 20 pkts at the very beginning to just gauge the min. latency with clk offset */
   assert(_packets_sent >= feedback->max_rx_seq_no);
-  _current_rate=2*feedback->current_rate; /* To make sure the buffer is non empty */
-  _current_rate=(_current_rate<10)?10:_current_rate;
+  /* 3G mode */
+  if(feedback->current_rate < 100) _current_rate = _gamma * feedback->current_rate ;
+  /* 4G mode */
+  else  _current_rate=2*feedback->current_rate; /* To make sure the buffer is non empty */
+  _current_rate=(_current_rate<MINIMUM_RATE)?MINIMUM_RATE:_current_rate;
 }
