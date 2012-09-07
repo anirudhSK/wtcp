@@ -45,7 +45,8 @@ DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket
 uint64_t DelayServoSender::wait_time_ns( void ) const
 {
   uint64_t cur_ts=Socket::timestamp();
-  if(_next_transmission > cur_ts) {
+  if(_next_transmission > (cur_ts + 10e6) ) { 
+    /* if it's at least 10 ms in the future , else don't sleep */
     return _next_transmission - cur_ts;
   }
   else return 0;
@@ -53,7 +54,8 @@ uint64_t DelayServoSender::wait_time_ns( void ) const
 uint64_t DelayServoReceiver::wait_time_ns( void ) const
 {
   uint64_t cur_ts=Socket::timestamp();
-  if(_next_transmission > cur_ts) {
+  if(_next_transmission > (cur_ts + 10e6) ) {
+    /* if it's at least 10 ms in the future , else don't sleep */
     return _next_transmission - cur_ts;
   }
   else return 0;
@@ -72,7 +74,7 @@ void DelayServoReceiver::recv( Payload* contents )
     printf( "%s seq = %d delay = %f recvrate = %f outstanding at rx = %d Mbps = %f lost = %.5f%% arrivemilli = %ld pkts_received = %d \n",
           _name.c_str(),
           contents->sequence_number,
-          (double) (contents->recv_timestamp - contents->sent_timestamp) / 1.0e9,
+          (double) ((int64_t)contents->recv_timestamp - (int64_t)contents->sent_timestamp) / 1.0e9,
           _rate_estimator.get_rate(),
           _hist.num_outstanding_rx(),
           _rate_estimator.get_rate() * PACKET_SIZE * 8.0 / 1.0e6,
@@ -106,10 +108,8 @@ void DelayServoReceiver::tick( void )
 
 void DelayServoSender::tick( void )
 {
-   uint64_t now = Socket::timestamp();
-   if( (_num_outstanding < _cwnd ) ) { /* slow start */
-    uint64_t interpacket_delay=_ramp_up_ns/_cwnd; 
-    /* Whatever be the cwnd ramp up to it in _ramp_up_ns nanosecs to be somewhat reasonable */ 
+    uint64_t interpacket_delay=1e9/_current_rate;
+    uint64_t now = Socket::timestamp();
     if ( _next_transmission <= now ) {
       /* Send packet */
       Payload outgoing;
@@ -120,54 +120,13 @@ void DelayServoSender::tick( void )
       _last_transmission = outgoing.sent_timestamp;
       _next_transmission = _last_transmission + interpacket_delay;
       _num_outstanding++;
-      std::cout<<_name<<" Transmitting in tick with rate "<<1.0e9/interpacket_delay<<" packets per second \n";
+//      std::cout<<_name<<" Transmitting in tick @ "<<now<<" with rate "<<1.0e9/interpacket_delay<<" packets per second \n";
     }
-   }
-   else {
-      _next_transmission=now+100*1e6;
-      /*wait for ACK(s) , but wake up in 100ms to avoid deadlock */ 
-   }
 }
 
 void DelayServoSender::recv(Feedback* feedback) {
   /* This has to be a feedback packet  */
-  if( feedback->sender_id == _unique_id) {
-   assert(_packets_sent >= feedback->max_rx_seq_no);
-   /* calculate the total number of new packets that the receiver
-      either acked or purged in this ack */
-   uint64_t orig_outstanding=_num_outstanding;
-   _num_outstanding=feedback->num_outstanding_rx +(_packets_sent-feedback->max_rx_seq_no) ;
-   std::cout<<"PAckets sent is "<<_packets_sent<<" max rx seq num is "<<feedback->max_rx_seq_no<<" _num_outstanding is "<<_num_outstanding<<"\n";
-   int num_new_total=0;
-   if (orig_outstanding > _num_outstanding) num_new_total=orig_outstanding-_num_outstanding;
-
-   /* Now compute the number of packets that the receiver declared lost in this
-      feedback packet */
-   int old_lost_count=_num_lost;
-   _num_lost=feedback->num_lost;
-   int num_new_lost=feedback->num_lost - old_lost_count;
-
-   assert(num_new_total >= num_new_lost) ; /* else we have  a bug somewhere */
-
-   /* Take the difference and this is the number of packets newly acked */
-   int num_new_acks=num_new_total-num_new_lost;
-   _num_acks=_num_acks+num_new_acks;
-   /* Add this much to the cwnd, clip it to bounds */
-   _cwnd=_cwnd+num_new_acks-num_new_lost; 
-   _cwnd=(_cwnd>CWND_MAX)?CWND_MAX:_cwnd;
-   _cwnd=(_cwnd<CWND_MIN)?CWND_MIN:_cwnd;
-
-   std::cout<<_name<<"@ "<<Socket::timestamp()<<" rx feedback num_outstanding "<<_num_outstanding<<" num_lost "<<_num_lost<<" new cwnd "<<_cwnd<<" num acks "<<_num_acks<<"\n";
-   while ( (num_new_total>= 1) && (_num_outstanding < _cwnd) ) { 
-      /* self clock to refill both acked packets and lost ones to maintain packet conservation */
-      /* Send packet */
-      Payload outgoing;
-      outgoing.sequence_number = _packets_sent++;
-      outgoing.sent_timestamp = Socket::timestamp();
-      outgoing.sender_id = _unique_id;
-      _sender.send( Socket::Packet( _target, outgoing.str( PACKET_SIZE ) ) );
-      _num_outstanding++;
-      num_new_total--;
-   }
-  }
+  assert(_packets_sent >= feedback->max_rx_seq_no);
+  _current_rate=2*feedback->current_rate; /* To make sure the buffer is non empty */
+  _current_rate=(_current_rate<10)?10:_current_rate;
 }

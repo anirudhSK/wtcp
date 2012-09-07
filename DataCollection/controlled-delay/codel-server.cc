@@ -89,12 +89,12 @@ int main( int argc, char* argv[] ) {
     uplink_receiver.tick(); 
     /* wait for incoming packet OR expiry of timer */
     struct pollfd poll_fds[ 1 ];
-    poll_fds[ 0 ].fd = downlink_sender.fd();
+    poll_fds[ 0 ].fd = ethernet_socket.get_sock();
     poll_fds[ 0 ].events = POLLIN;
 
     struct timespec timeout;
-    uint64_t next_transmission_delay = std::min( uplink_receiver.wait_time_ns(), downlink_sender.wait_time_ns()  );
-
+//    uint64_t next_transmission_delay = std::min( uplink_receiver.wait_time_ns(), downlink_sender.wait_time_ns()  );
+    uint64_t next_transmission_delay = 0;
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;
     ppoll( poll_fds, 1, &timeout, NULL );
