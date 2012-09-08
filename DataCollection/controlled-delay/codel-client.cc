@@ -52,16 +52,17 @@ double hread( uint64_t in )
 
 int main( int argc , char* argv[] ) {
   
-  if(argc<5) {
-   std::cout<<"Usage: ./codel-client local_ip server_ip data_interface feedback_interface \n";
+  if(argc<6) {
+   std::cout<<"Usage: ./codel-client local_data_ip local_feedback_ip server_ip data_interface feedback_interface \n";
    exit(1);
   }
  
   /* get details from cmd line */ 
-  std::string local_ip((const char*)argv[1]);
-  std::string server_ip((const char*)argv[2]);
-  std::string data_interface((const char*)argv[3]);
-  std::string feedback_interface((const char*)argv[3]);
+  std::string local_data_ip((const char*)argv[1]);
+  std::string local_feedback_ip((const char*)argv[2]);
+  std::string server_ip((const char*)argv[3]);
+  std::string data_interface((const char*)argv[4]);
+  std::string feedback_interface((const char*)argv[5]);
 
   Socket::Address server_data( server_ip , 9000 );
   Socket::Address server_feedback( server_ip , 9001 );
@@ -69,10 +70,10 @@ int main( int argc , char* argv[] ) {
   /* Create and bind LTE socket on USB0 tethered to the phone */
   Socket data_socket,feedback_socket;
 
-  data_socket.bind( Socket::Address( local_ip, 18000 ) );
+  data_socket.bind( Socket::Address( local_data_ip, 18000 ) );
   data_socket.bind_to_device( data_interface );
 
-  feedback_socket.bind( Socket::Address( local_ip, 18001 ) );
+  feedback_socket.bind( Socket::Address( local_feedback_ip, 18001 ) );
   feedback_socket.bind_to_device( feedback_interface );
 
   /* Keep sending packets to the server until he acks that he got your packet. Otherwise nothing can run */
@@ -109,8 +110,8 @@ int main( int argc , char* argv[] ) {
     if ( poll_fds[ 0 ].revents & POLLIN ) {
       Socket::Packet incoming( data_socket.recv() );
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
-      Payload *contents = (Payload *) incoming.payload.data();
       if(*pkt_id==remote_id) { /* this is data */
+       Payload *contents = (Payload *) incoming.payload.data();
        contents->recv_timestamp = incoming.timestamp;
        downlink_receiver.recv(contents);
       }
@@ -120,6 +121,7 @@ int main( int argc , char* argv[] ) {
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
       if (*pkt_id==local_id) {/* this is feedback */  
        Feedback *feedback = (Feedback *) incoming.payload.data();
+       feedback->recv_timestamp = incoming.timestamp;
        uplink_sender.recv(feedback);
       }
     }

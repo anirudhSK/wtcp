@@ -111,8 +111,8 @@ int main( int argc, char* argv[] ) {
     if ( poll_fds[ 0 ].revents & POLLIN ) {
       Socket::Packet incoming( data_socket.recv() );
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
-      Payload *contents = (Payload *) incoming.payload.data();
       if(*pkt_id==remote_id) { /* this is data */
+       Payload *contents = (Payload *) incoming.payload.data();
        contents->recv_timestamp = incoming.timestamp;
        uplink_receiver.recv(contents);
       }
@@ -122,6 +122,7 @@ int main( int argc, char* argv[] ) {
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
       if (*pkt_id==local_id) {/* this is feedback */  
        Feedback *feedback = (Feedback *) incoming.payload.data();
+       feedback->recv_timestamp = incoming.timestamp;
        downlink_sender.recv(feedback);
       }
     }

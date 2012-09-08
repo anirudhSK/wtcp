@@ -91,6 +91,7 @@ void DelayServoReceiver::tick( void )
        feedback.current_rate=_rate_estimator.get_rate();
        feedback.current_latency=_rate_estimator.get_latency();
        feedback.sender_id = _unique_id;
+       feedback.sent_timestamp=Socket::timestamp();
        _feedback_socket.send(Socket::Packet(_source, feedback.str(sizeof(Feedback))));
        _next_transmission=_next_transmission + 1.e6*20  ;
   }
@@ -114,12 +115,7 @@ void DelayServoSender::tick( void )
 }
 
 void DelayServoSender::recv(Feedback* feedback) {
-   if(_packets_sent <= 20 )  {
-     /* send 20 pkts at the beginning to get the min. latency with clk offset */
-     _current_rate=BACKOFF_RATE;
-     return ;   
-   }
-   else   {               
+   std::cout<<_name<<" feedback @ delay "<<((int64_t)feedback->recv_timestamp-(int64_t)feedback->sent_timestamp)/1.0e9<<" rx rate "<<feedback->current_rate<<" rx latency "<<feedback->current_latency<<"\n";
    /* Now act on feedback */
    if(feedback->current_latency >= 10.0) {
     /* Don't allow the queues to grow over 15 seconds */
@@ -133,5 +129,4 @@ void DelayServoSender::recv(Feedback* feedback) {
     _current_rate=(_current_rate<MINIMUM_TX_RATE)?MINIMUM_TX_RATE:_current_rate;
     return ;
    }
-  }
 }

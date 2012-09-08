@@ -14,5 +14,7 @@ bool Feedback::operator==( const Feedback & other ) const
   return ( current_rate == other.current_rate
 	  && sender_id == other.sender_id
           && current_latency == other.current_latency
+          && sent_timestamp == other.sent_timestamp
+          && recv_timestamp == other.recv_timestamp
          );
 }
