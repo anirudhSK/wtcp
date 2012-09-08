@@ -52,32 +52,39 @@ double hread( uint64_t in )
 
 int main( int argc , char* argv[] ) {
   
-  if(argc<4) {
-   std::cout<<"Usage: ./codel-client local_ip server_ip interface \n";
+  if(argc<5) {
+   std::cout<<"Usage: ./codel-client local_ip server_ip data_interface feedback_interface \n";
    exit(1);
   }
  
   /* get details from cmd line */ 
   std::string local_ip((const char*)argv[1]);
   std::string server_ip((const char*)argv[2]);
-  std::string interface((const char*)argv[3]);
-  Socket::Address server_address( server_ip , 9000 );
+  std::string data_interface((const char*)argv[3]);
+  std::string feedback_interface((const char*)argv[3]);
+
+  Socket::Address server_data( server_ip , 9000 );
+  Socket::Address server_feedback( server_ip , 9001 );
 
   /* Create and bind LTE socket on USB0 tethered to the phone */
-  Socket lte_socket;
+  Socket data_socket,feedback_socket;
 
-  lte_socket.bind( Socket::Address( local_ip, 9001 ) );
-  lte_socket.bind_to_device( interface );
+  data_socket.bind( Socket::Address( local_ip, 18000 ) );
+  data_socket.bind_to_device( data_interface );
+
+  feedback_socket.bind( Socket::Address( local_ip, 18001 ) );
+  feedback_socket.bind_to_device( feedback_interface );
 
   /* Keep sending packets to the server until he acks that he got your packet. Otherwise nothing can run */
+  /* Use a unique to avoid confusing old zombies */ 
   uint32_t local_id = (int) getpid() ^ rand(); 
-  /* To avoid confusing old zombies */ 
-  uint32_t remote_id=punch_nat_hole(lte_socket,server_address,local_id); 
+  uint32_t remote_id=punch_nat_hole(data_socket,server_data,local_id); 
+  remote_id=punch_nat_hole(feedback_socket,server_feedback,local_id); 
 
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
-  DelayServoReceiver downlink_receiver("DOWN-RX",lte_socket,server_address,remote_id);
-  DelayServoSender uplink_sender("UP-TX",lte_socket,server_address,local_id,1.1,100,1000); /* gamma of 1.1 for uplink sender */ 
+  DelayServoReceiver downlink_receiver("DOWN-RX",data_socket,feedback_socket,server_feedback,remote_id);
+  DelayServoSender uplink_sender("UP-TX",data_socket,feedback_socket,server_data,local_id);  
 
   while ( 1 ) {
     fflush( NULL );
@@ -86,27 +93,34 @@ int main( int argc , char* argv[] ) {
     downlink_receiver.tick();
     uplink_sender.tick(); 
     /* wait for incoming packet OR expiry of timer */
-    struct pollfd poll_fds[ 1 ];
-    poll_fds[ 0 ].fd = lte_socket.get_sock();
+    struct pollfd poll_fds[ 2 ];
+    poll_fds[ 0 ].fd = data_socket.get_sock();
     poll_fds[ 0 ].events = POLLIN;
+
+    poll_fds[ 1 ].fd = feedback_socket.get_sock();
+    poll_fds[ 1 ].events = POLLIN;
 
     struct timespec timeout;
     uint64_t next_transmission_delay = std::min ( downlink_receiver.wait_time_ns() , uplink_sender.wait_time_ns()  );
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;
-    ppoll( poll_fds, 1, &timeout, NULL );
+    ppoll( poll_fds, 2, &timeout, NULL );
 
     if ( poll_fds[ 0 ].revents & POLLIN ) {
-      Socket::Packet incoming( lte_socket.recv() );
+      Socket::Packet incoming( data_socket.recv() );
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
-      if(*pkt_id==local_id) /* this is feedback */  {
-       Feedback *feedback = (Feedback *) incoming.payload.data();
-       uplink_sender.recv(feedback);
-      }
-      else if (*pkt_id==remote_id) { /* this is data */
-       Payload *contents = (Payload *) incoming.payload.data();
+      Payload *contents = (Payload *) incoming.payload.data();
+      if(*pkt_id==remote_id) { /* this is data */
        contents->recv_timestamp = incoming.timestamp;
        downlink_receiver.recv(contents);
+      }
+    }
+    else if ( poll_fds[ 1 ].revents & POLLIN ) {
+      Socket::Packet incoming( feedback_socket.recv() );
+      uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
+      if (*pkt_id==local_id) {/* this is feedback */  
+       Feedback *feedback = (Feedback *) incoming.payload.data();
+       uplink_sender.recv(feedback);
       }
     }
   }

@@ -5,3 +5,38 @@ On 3G:
 A gain of 1.1 also seems to push up the uplink latencies all the way until 100 odd seconds, but the good news is that it gets to this 100 odd seconds much more slowly. On the downlink though, 1.1 is too gentle, and causes severe queue underflows.
 
 So the moral of the story, make this gamma for 3g variable, and set it to 1.1 on the uplink and about 2 on the downlink. 
+
+Ok, so far, so bad. Nothing really has worked today.
+
+I did a walking experiment but the results weren't great either.
+
+Ok status as of 5:51 PM :
+
+4G : Uplink and downlink, the murderous 2x rule seems to work fine. 
+3G : Downlink, the rule seems to work fine but sometimes creates underflows.
+3G: Uplink, the phone has insane buffers that never ever seem to drain out.
+
+Conclusions:
+
+1. Ok, so we should be using the 2x rule in general. This way we have 50 % losses in the long term but non empty buffers. 
+2. We should make sure we send at a min. rate of 50 packets per second in either direction because you might suddenly lose contact with the other guy on the downlink . Now, if he ramps up, you are left in the lurch with yet another underflow. So, I think 50 packets per second is a good number here. 
+3. We need to make sure that the uplink buffers don't get excessive. This happens only on a 3G uplink and most probably under terrible conditions, so maybe we shouldn't worry too much ?
+
+
+Problem with the morning's mobile traces :
+
+Issues 2. We had underflow of the buffer for sure in a couple of places. 
+Not really an issue : We did not have excessively growing latencies. 
+
+The 50 packets per second fixes underflow the best we can.  
+
+ok, so let's switch to use a second phone as a feedback channel, just to make sure we don't screw things up. 
+
+4G UPLINK-DOWNLINK and 3G DOWNLINK works for now. 
+
+Ok, changes to enable 2 phone based setup :
+
+1. Replicate get_nat_addr and punch_hole_nat twice over. 
+2. Have a separate data channel and feedback channel or rather sockets at both sender and receiver. Split it up this way. Put both sockets on all 4 objects. 
+
+

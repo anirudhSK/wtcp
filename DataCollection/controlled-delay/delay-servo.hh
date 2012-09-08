@@ -12,7 +12,9 @@ private:
 
   const std::string _name;
 
-  const Socket & _sender;
+  const Socket & _data_socket;
+  const Socket & _feedback_socket;
+
   const Socket::Address & _target;
 
   double _current_rate;
@@ -21,28 +23,23 @@ private:
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
   static constexpr double QUEUE_DURATION_TARGET = 2.000; /* seconds */
   static constexpr double STEERING_TIME = 0.05; /* seconds */
-  static constexpr double MINIMUM_RATE = 10.0; /* packets per second */
+  static constexpr double MINIMUM_TX_RATE = 50.0; /* packets per second- Median 3G tput */
+  static constexpr double BACKOFF_RATE = 5.0;  /* packets per second */
 
 
   int _unique_id;
 
   uint64_t _next_transmission, _last_transmission;
 
-  uint32_t _num_outstanding,_num_lost,_num_acks;
-
-  unsigned int CWND_MIN ;  /* packets */
-  unsigned int CWND_MAX ; /* packets */
-  uint16_t _cwnd;                               /* cong window in packets */ 
-  double _gamma;                          /* time to ramp up to CWND_MAX */
 public:
 
-  DelayServoSender( const std::string & s_name, const Socket & s_sender, const Socket::Address & s_target,uint32_t sender_id , double s_gamma,  unsigned int cwnd_min, unsigned int cwnd_max );
+  DelayServoSender( const std::string & s_name, const Socket & s_data_socket, const Socket & s_feedback_socket, const Socket::Address & s_target, uint32_t local_id) ;
 
   void tick( void );
   void recv(Feedback *feedback_pkt);
 
   uint64_t wait_time_ns( void ) const;
-  int fd( void ) const { return _sender.get_sock(); }
+  int fd( void ) const { return _feedback_socket.get_sock(); }
 };
 
 class DelayServoReceiver {
@@ -50,7 +47,9 @@ private:
 
   const std::string _name;
 
-  const Socket & _receiver;
+  const Socket & _data_socket;
+  const Socket & _feedback_socket;
+
   const Socket::Address & _source;
 
   RateEstimate _rate_estimator;
@@ -58,7 +57,7 @@ private:
   unsigned int _packets_received;
 
   static const unsigned int PACKET_SIZE = 1400; /* bytes */
-  static constexpr double MINIMUM_RATE = 10.0; /* packets per second */
+  static constexpr double MINIMUM_RX_RATE = 5.0; /* packets per second */
 
   int _unique_id;
 
@@ -68,12 +67,12 @@ private:
 
 public:
 
-  DelayServoReceiver( const std::string & s_name, const Socket & s_receiver,const Socket::Address & s_source , uint32_t remoted_id );
+  DelayServoReceiver( const std::string & s_name, const Socket & s_data_socket, const Socket & s_feedback_socket, const Socket::Address & s_source, uint32_t remote_id ) ;
 
   void tick();
   void recv( Payload* payload);
 
   uint64_t wait_time_ns( void ) const;
-  int fd( void ) const { return _receiver.get_sock(); }
+  int fd( void ) const { return _data_socket.get_sock(); }
 };
 #endif

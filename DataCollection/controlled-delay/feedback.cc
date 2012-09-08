@@ -11,9 +11,8 @@ const std::string Feedback::str( const size_t len ) const
 
 bool Feedback::operator==( const Feedback & other ) const
 {
-  return (num_outstanding_rx == other.num_outstanding_rx
-	  && current_rate == other.current_rate
+  return ( current_rate == other.current_rate
 	  && sender_id == other.sender_id
-          && max_rx_seq_no == other.max_rx_seq_no
-          && num_lost == other.num_lost);
+          && current_latency == other.current_latency
+         );
 }

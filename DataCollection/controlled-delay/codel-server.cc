@@ -65,21 +65,28 @@ int main( int argc, char* argv[] ) {
   std::string local_ip((const char*)argv[1]);
   std::string interface((const char*)argv[2]);
 
-  Socket::Address ethernet_address( local_ip, 9000 );
-  Socket ethernet_socket;
-  ethernet_socket.bind( ethernet_address );
-  ethernet_socket.bind_to_device( interface );
+  /* Create to two ethernet sockets for data and feedback */
+  Socket data_socket,feedback_socket;
+
+  data_socket.bind( Socket::Address( local_ip, 9000 ) );
+  data_socket.bind_to_device( interface );
+
+  feedback_socket.bind( Socket::Address( local_ip, 9001 ) );
+  feedback_socket.bind_to_device( interface );
 
   /* Figure out the NAT addresses of each of the three LTE sockets */
   uint32_t local_id = (int) getpid() ^ rand(); 
   uint32_t remote_id;
-  Socket::Address target( get_nat_addr( ethernet_socket, local_id, &remote_id ) );
-  fprintf( stderr, "LTE = %s\n", target.str().c_str() );
+  Socket::Address target_data( get_nat_addr( data_socket, local_id, &remote_id ) );
+  Socket::Address target_feedback( get_nat_addr( feedback_socket, local_id, &remote_id ) );
+
+  fprintf( stderr, "LTE data endpoint = %s\n", target_data.str().c_str() );
+  fprintf( stderr, "LTE feedback endpoint = %s\n", target_feedback.str().c_str() );
 
   std::cout<<"Local ID "<<local_id<<" remote id "<<remote_id<<"\n";
 
-  DelayServoSender downlink_sender("DOWN-TX",ethernet_socket,target,local_id,2.0,1000,2000); /* gamma of 2 for downlink 3g */
-  DelayServoReceiver uplink_receiver("UP-RX",ethernet_socket,target,remote_id);
+  DelayServoSender downlink_sender("DOWN-TX",data_socket,feedback_socket,target_data,local_id); 
+  DelayServoReceiver uplink_receiver("UP-RX",data_socket,feedback_socket,target_feedback,remote_id);
 
   while ( 1 ) {
     fflush( NULL );
@@ -88,27 +95,34 @@ int main( int argc, char* argv[] ) {
     downlink_sender.tick();
     uplink_receiver.tick(); 
     /* wait for incoming packet OR expiry of timer */
-    struct pollfd poll_fds[ 1 ];
-    poll_fds[ 0 ].fd = ethernet_socket.get_sock();
+    struct pollfd poll_fds[ 2 ];
+    poll_fds[ 0 ].fd = data_socket.get_sock();
     poll_fds[ 0 ].events = POLLIN;
+
+    poll_fds[ 1 ].fd = feedback_socket.get_sock();
+    poll_fds[ 1 ].events = POLLIN;
 
     struct timespec timeout;
     uint64_t next_transmission_delay = std::min( uplink_receiver.wait_time_ns(), downlink_sender.wait_time_ns()  );
     timeout.tv_sec = next_transmission_delay / 1000000000;
     timeout.tv_nsec = next_transmission_delay % 1000000000;
-    ppoll( poll_fds, 1, &timeout, NULL );
+    ppoll( poll_fds, 2, &timeout, NULL );
 
     if ( poll_fds[ 0 ].revents & POLLIN ) {
-      Socket::Packet incoming( ethernet_socket.recv() );
+      Socket::Packet incoming( data_socket.recv() );
       uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
-      if(*pkt_id==local_id) /* this is feedback */  {
-       Feedback *feedback = (Feedback *) incoming.payload.data();
-       downlink_sender.recv(feedback);
-      }
-      else if (*pkt_id==remote_id) { /* this is data */
-       Payload *contents = (Payload *) incoming.payload.data();
+      Payload *contents = (Payload *) incoming.payload.data();
+      if(*pkt_id==remote_id) { /* this is data */
        contents->recv_timestamp = incoming.timestamp;
        uplink_receiver.recv(contents);
+      }
+    }
+    else if ( poll_fds[ 1 ].revents & POLLIN ) {
+      Socket::Packet incoming( feedback_socket.recv() );
+      uint32_t* pkt_id=(uint32_t *)(incoming.payload.data());
+      if (*pkt_id==local_id) {/* this is feedback */  
+       Feedback *feedback = (Feedback *) incoming.payload.data();
+       downlink_sender.recv(feedback);
       }
     }
   }

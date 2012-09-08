@@ -5,35 +5,27 @@
 #include <iostream>
 #include "delay-servo.hh"
 
-DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_sender,const Socket::Address & s_target, uint32_t local_id, double s_gamma, unsigned int cwnd_min, unsigned int cwnd_max )
+DelayServoSender::DelayServoSender( const std::string & s_name, const Socket & s_data_socket, const Socket & s_feedback_socket, const Socket::Address & s_target, uint32_t local_id )
   : _name( s_name ), 
-    _sender( s_sender ),
+    _data_socket( s_data_socket ),
+    _feedback_socket( s_feedback_socket ),
     _target( s_target ),
-    _current_rate( MINIMUM_RATE ),
+    _current_rate( BACKOFF_RATE ),
     _packets_sent( 0 ),
     _unique_id( local_id ),
     _next_transmission( Socket::timestamp() ),
-    _last_transmission( _next_transmission ),
-    _num_outstanding(0),
-    _num_lost(0),
-    _num_acks(0),
-    CWND_MIN(cwnd_min),
-    CWND_MAX(cwnd_max),
-    _cwnd(CWND_MIN),
-    _gamma(s_gamma)
+    _last_transmission( _next_transmission )
 {
   std::cout<<"Servo PARAMETERS \n";
   std::cout<<"PACKET_SIZE = "<<PACKET_SIZE<<"\n";
-  std::cout<<"CWND_MIN = "<<CWND_MIN<<"\n";
-  std::cout<<"CWND_MAX = "<<CWND_MAX<<"\n";
-  std::cout<<"GAMMA = "<<_gamma<<"\n";
 }
 
-DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket & s_receiver, const Socket::Address & s_source, uint32_t remote_id )
+DelayServoReceiver::DelayServoReceiver( const std::string & s_name, const Socket & s_data_socket, const Socket & s_feedback_socket, const Socket::Address & s_source, uint32_t remote_id )
   : _name( s_name ), 
-    _receiver( s_receiver ),
-    _source( s_source ),
-    _rate_estimator( MINIMUM_RATE, 1000 ),
+    _data_socket( s_data_socket ),
+    _feedback_socket( s_feedback_socket ),
+    _source ( s_source) ,
+    _rate_estimator( MINIMUM_RX_RATE, 1000 ),
     _packets_received( 0 ),
     _unique_id( remote_id ),
     _next_transmission( Socket::timestamp() ),
@@ -71,12 +63,12 @@ void DelayServoReceiver::recv( Payload* contents )
   current_rate=_rate_estimator.get_rate();
   _hist.packet_received( *contents , current_rate );
   double loss_rate = (double) _hist.num_lost() / (double) _hist.max_rx_seq_no();  
-    printf( "%s seq = %d delay = %f recvrate = %f outstanding at rx = %d Mbps = %f lost = %.5f%% arrivemilli = %ld pkts_received = %d \n",
+    printf( "%s seq = %d delay = %f recvrate = %f avg-latency at rx = %f Mbps = %f lost = %.5f%% arrivemilli = %ld pkts_received = %d \n",
           _name.c_str(),
           contents->sequence_number,
           (double) ((int64_t)contents->recv_timestamp - (int64_t)contents->sent_timestamp) / 1.0e9,
           _rate_estimator.get_rate(),
-          _hist.num_outstanding_rx(),
+          _rate_estimator.get_latency(),
           _rate_estimator.get_rate() * PACKET_SIZE * 8.0 / 1.0e6,
           loss_rate * 100,
           contents->recv_timestamp / 1000000,
@@ -96,12 +88,10 @@ void DelayServoReceiver::tick( void )
   } 
   if ( Socket::timestamp() > _next_transmission ) /* 20 ms*/ {
        Feedback feedback;
-       feedback.num_outstanding_rx =_hist.num_outstanding_rx(); 
-       feedback.max_rx_seq_no=_hist.max_rx_seq_no();
        feedback.current_rate=_rate_estimator.get_rate();
-       feedback.num_lost=_hist.num_lost();
+       feedback.current_latency=_rate_estimator.get_latency();
        feedback.sender_id = _unique_id;
-       _receiver.send(Socket::Packet(_source, feedback.str(sizeof(Feedback))));
+       _feedback_socket.send(Socket::Packet(_source, feedback.str(sizeof(Feedback))));
        _next_transmission=_next_transmission + 1.e6*20  ;
   }
 }
@@ -116,21 +106,32 @@ void DelayServoSender::tick( void )
       outgoing.sequence_number = _packets_sent++;
       outgoing.sent_timestamp = Socket::timestamp();
       outgoing.sender_id = _unique_id;
-      _sender.send( Socket::Packet( _target, outgoing.str( PACKET_SIZE ) ) );
+      _data_socket.send( Socket::Packet( _target, outgoing.str( PACKET_SIZE ) ) );
       _last_transmission = outgoing.sent_timestamp;
       _next_transmission = _last_transmission + interpacket_delay;
-      _num_outstanding++;
-//      std::cout<<_name<<" Transmitting in tick @ "<<now<<" with rate "<<1.0e9/interpacket_delay<<" packets per second \n";
+      std::cout<<_name<<" Transmitting in tick @ "<<now<<" with rate "<<1.0e9/interpacket_delay<<" packets per second \n";
     }
 }
 
 void DelayServoSender::recv(Feedback* feedback) {
-  /* This has to be a feedback packet  */
-  if(_packets_sent <= 20 ) return ;                   /* send 20 pkts at the very beginning to just gauge the min. latency with clk offset */
-  assert(_packets_sent >= feedback->max_rx_seq_no);
-  /* 3G mode */
-  if(feedback->current_rate < 100) _current_rate = _gamma * feedback->current_rate ;
-  /* 4G mode */
-  else  _current_rate=2*feedback->current_rate; /* To make sure the buffer is non empty */
-  _current_rate=(_current_rate<MINIMUM_RATE)?MINIMUM_RATE:_current_rate;
+   if(_packets_sent <= 20 )  {
+     /* send 20 pkts at the beginning to get the min. latency with clk offset */
+     _current_rate=BACKOFF_RATE;
+     return ;   
+   }
+   else   {               
+   /* Now act on feedback */
+   if(feedback->current_latency >= 10.0) {
+    /* Don't allow the queues to grow over 15 seconds */
+    std::cout<<_name<<" Backing off \n";
+    _current_rate=BACKOFF_RATE; 
+    return ;
+   }
+   /* Check the above two against 4G as well */ 
+   else {
+    _current_rate=2*feedback->current_rate; /* To make sure the buffer is non empty */
+    _current_rate=(_current_rate<MINIMUM_TX_RATE)?MINIMUM_TX_RATE:_current_rate;
+    return ;
+   }
+  }
 }
