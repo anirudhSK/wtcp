@@ -27,6 +27,8 @@ do
    rm server-$server_time-$session_id ;
   
    # copy files for gnuplot  
+   export offset=$session_ts
+   echo "offset is"$offset
    cp downlink-$session_id.rtt downlink.rtt
    cp downlink-$session_id.one_way downlink.one_way
    cp uplink-$session_id.rtt uplink.rtt
