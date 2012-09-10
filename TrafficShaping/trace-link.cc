@@ -69,7 +69,7 @@ TraceLink::DeliverySchedule::DeliverySchedule(std::string t_file_name) :
      /* populate pkt_delivery_list using the file */
      std::ifstream pkt_stream (file_name.c_str());
      uint64_t time;
-     uint32_t bytes;
+     double bytes;
      if(!pkt_stream.good()) {
          std::cout<<"Trace file "<<file_name<<" does not exist ... exiting \n";
          exit(-5);
